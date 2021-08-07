@@ -1,4 +1,5 @@
-.idea/*
-resources/*
-results/*
-venv/*
+.idea
+resources
+results
+venv
+codes/list_test.py
