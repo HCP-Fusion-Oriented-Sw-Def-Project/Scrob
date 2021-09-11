@@ -1,3 +1,4 @@
+import os
 import xml.etree.ElementTree as ET
 from PIL import Image, ImageDraw
 
@@ -15,6 +16,7 @@ class TreeNode():
         self.parent = None
         self.ans_id = -1  # 去除layout之后的祖先结点的id
         self.children = []
+        self.descendants = []  # 节点的子孙节点
         self.changed_attributes = []
         self.is_changed = False
         self.id = -1  # 在结点数组中的id
@@ -55,6 +57,17 @@ class TreeNode():
             x1, y1, x2, y2 = self.parse_bounds()
             self.width = x2 - x1
             self.height = y2 - y1
+
+    def get_descendants(self, node):
+        """
+        获取所有子孙节点 dfs
+        """
+        if not node.children:
+            return
+
+        for child_node in node.children:
+            self.descendants.append(child_node)
+            self.get_descendants(child_node)
 
 
 class XmlTree():
@@ -145,6 +158,7 @@ class XmlTree():
 
         for node in self.nodes:
             self.get_nodes_xpath(node)
+            node.get_descendants(node)
 
         self.nodes = self.nodes[1:]  # 第一个根节点无实际含义
 
@@ -183,6 +197,9 @@ class XmlTree():
         """
         判断两个节点是否可以聚为一类
         """
+        # if node_1.children == [] or node_2.children == []: # 只对非叶子节点进行聚类
+        #     return False
+
         is_res_id_empty = False
         res_id_1 = node_1.attrib['resource-id']
         res_id_2 = node_2.attrib['resource-id']
@@ -202,6 +219,12 @@ class XmlTree():
         descendants_id_1 = []
         descendants_id_2 = []
 
+        # for des in node_1.descendants:
+        #     descendants_id_1.append(des.id)
+        #
+        # for des in node_2.descendants:
+        #     descendants_id_2.append(des.id)
+
         if node_1.id in self.ans_bind:
             descendants_id_1 = self.ans_bind[node_1.id]
 
@@ -209,6 +232,7 @@ class XmlTree():
             descendants_id_2 = self.ans_bind[node_2.id]
 
         descendant_sim = self.descendants_similar(descendants_id_1, descendants_id_2)
+
         if node_1.width == node_2.width or node_1.height == node_2.height:
             return (0.8 + descendant_sim) / 2
         else:
@@ -253,6 +277,54 @@ class XmlTree():
 
         return counter / total
 
+    def is_ans(self, node_1, node_2):
+        """
+        判断两个节点是否是子孙关系
+        """
+
+        flag = False
+
+        node_1_ans = node_1.parent
+
+        while node_1_ans != node_2:
+            if node_1_ans.id == 0:
+                break
+            node_1_ans = node_1_ans.parent
+
+        if node_1_ans.id != 0:
+            flag = True
+
+        node_2_ans = node_2.parent
+
+        while node_2_ans != node_1:
+            if node_2_ans.id == 0:
+                break
+            node_2_ans = node_2_ans.parent
+
+        if node_2_ans.id != 0:
+            flag = True
+
+        return flag
+
+        # node_1_x1, node_1_y1, node_1_x2, node_1_y2 = node_1.parse_bounds()
+        # node_2_x1, node_2_y1, node_2_x2, node_2_y2 = node_1.parse_bounds()
+        #
+        # flag = False
+        #
+        # if node_1_x1 <= node_2_x1 and \
+        #         node_1_y1 <= node_2_y1 and \
+        #         node_1_x2 >= node_2_x2 and \
+        #         node_1_y2 >= node_2_y2:
+        #     flag = True
+        #
+        # if node_2_x1 <= node_1_x1 and \
+        #         node_2_y1 <= node_1_y1 and \
+        #         node_2_x2 >= node_1_x2 and \
+        #         node_2_y2 >= node_1_y2:
+        #     flag = True
+        #
+        # return flag
+
     def get_node_clusters(self):
         """
         获得节点的聚类
@@ -278,9 +350,11 @@ class XmlTree():
                         sim = self.nodes_similar(self.nodes[descendant_nodes_id[i]], self.nodes[descendant_nodes_id[j]])
                         if sim >= 0.8:
                             if self.nodes[descendant_nodes_id[i]].cluster_id != -1:
-                                self.nodes[descendant_nodes_id[j]].cluster_id = self.nodes[descendant_nodes_id[i]].cluster_id
+                                self.nodes[descendant_nodes_id[j]].cluster_id = self.nodes[
+                                    descendant_nodes_id[i]].cluster_id
                             elif self.nodes[descendant_nodes_id[j]].cluster_id != -1:
-                                self.nodes[descendant_nodes_id[i]].cluster_id = self.nodes[descendant_nodes_id[j]].cluster_id
+                                self.nodes[descendant_nodes_id[i]].cluster_id = self.nodes[
+                                    descendant_nodes_id[j]].cluster_id
                             else:
                                 self.nodes[descendant_nodes_id[i]].cluster_id = self.clusters_id
                                 self.nodes[descendant_nodes_id[j]].cluster_id = self.clusters_id
@@ -293,7 +367,34 @@ class XmlTree():
                 else:
                     self.clusters[node.cluster_id].append(node.id)
 
+    def filter_clusters(self):
+        """
+        去除底层一些节点的聚类
+        """
 
+        filter_cluster_id = set()
+        filter_information = {}
+        for i in range(1, len(self.clusters)):
+            cluster_1 = self.clusters[i]
+            for j in range(i + 1, len(self.clusters) + 1):
+                cluster_2 = self.clusters[j]
+                for node_id_1 in cluster_1:
+                    for node_id_2 in cluster_2:
+                        node_1 = self.nodes[node_id_1]
+                        node_2 = self.nodes[node_id_2]
+                        if self.is_ans(node_1, node_2):
+                            if node_1.level < node_2.level:
+                                filter_cluster_id.add(j)
+                                filter_information[j] = i
+                            else:
+                                filter_cluster_id.add(i)
+                                filter_information[i] = j
+
+        # print(filter_cluster_id)
+        # print(filter_information)
+
+        for c_id in filter_cluster_id:
+            self.clusters.pop(c_id)
 
 
 def delete_str_num(str):
@@ -318,17 +419,43 @@ def drawer(x1, y1, x2, y2, img):
     draw.rectangle((x1, y1, x2, y2), fill=None, outline='red', width=2)
 
 
+def cluster_test():
+    for i in range(1, 16):
+        tree = ET.ElementTree(file='../resources/d{}.xml'.format(i))
+        img = Image.open('../resources/d{}.png'.format(i))
+        xml_root = tree.getroot()
+        root_node = TreeNode(xml_root, 0)
+        xml_tree = XmlTree(root_node)
+        nodes = xml_tree.get_nodes()
+        xml_tree.get_node_clusters()
+        xml_tree.filter_clusters()
+        for cluster_id in xml_tree.clusters:
+            tmp_img = img.copy()
+            for node in nodes:
+                if node.cluster_id != -1 and node.cluster_id == cluster_id:
+                    x1, y1, x2, y2 = node.parse_bounds()
+                    drawer(x1, y1, x2, y2, tmp_img)
+            if not os.path.exists('../tmp/{}'.format(i)):
+                os.makedirs('../tmp/{}'.format(i))
+            tmp_img.save('../tmp/{}/{}.png'.format(i, cluster_id))
+
+
 def main():
-    tree = ET.ElementTree(file='../resources/example.xml')
-    img = Image.open('../resources/example.png')
+    tree = ET.ElementTree(file='../resources/d3.xml')
+    img = Image.open('../resources/d3.png')
     xml_root = tree.getroot()
     root_node = TreeNode(xml_root, 0)
     xml_tree = XmlTree(root_node)
 
     nodes = xml_tree.get_nodes()
 
+
+
     xml_tree.get_node_clusters()
 
+    xml_tree.filter_clusters()
+
+    print(xml_tree.clusters)
 
     for cluster_id in xml_tree.clusters:
         tmp_img = img.copy()
@@ -336,14 +463,41 @@ def main():
             if node.cluster_id != -1 and node.cluster_id == cluster_id:
                 x1, y1, x2, y2 = node.parse_bounds()
                 drawer(x1, y1, x2, y2, tmp_img)
-        tmp_img.save('../results/{}.png'.format(cluster_id))
 
+        tmp_img.save('../tmp/{}.png'.format(cluster_id))
 
+    #
+    # xml_tree.filter_clusters()
 
+    # print(xml_tree.nodes[25].attrib)
+    # print(xml_tree.nodes[42].attrib)
+    #
+    # print(xml_tree.nodes_similar(xml_tree.nodes[25], xml_tree.nodes[42],))
 
+    # for cluster_id in xml_tree.clusters:
+    #     tmp_img = img.copy()
+    #     for node in nodes:
+    #         if node.cluster_id != -1 and node.cluster_id == cluster_id:
+    #             x1, y1, x2, y2 = node.parse_bounds()
+    #             drawer(x1, y1, x2, y2, tmp_img)
+    #
+    #     tmp_img.save('../result/{}.png'.format(cluster_id))
 
+    # print(xml_tree.clusters)
 
+    # a = None
+    # b = None
+    # for node in nodes:
+    #     if node.attrib['bounds'] == '[0,93][540,444]':
+    #         a = node
+    #     if node.attrib['bounds'] == '[0,444][540,795]':
+    #         b = node
+    #
+    # print(a.attrib)
+    # print(b.attrib)
+    #
+    # print(xml_tree.nodes_similar(a, b))
 
+#main()
 
-
-main()
+cluster_test()
