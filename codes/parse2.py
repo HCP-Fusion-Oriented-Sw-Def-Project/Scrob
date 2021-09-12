@@ -89,7 +89,10 @@ def main():
     nodes1 = parse_xml(xml1)
     nodes2 = parse_xml(xml2)
 
-    nodes_matching_validate(nodes1, nodes2, png1, png2, num_str)
+    # nodes_matching_validate(nodes1, nodes2, png1, png2, num_str)
+
+    for node in nodes1:
+        print(node.layer)
 
 
 main()

@@ -109,7 +109,7 @@ class XmlTree():
         class_count = {}
         # 构造子节点
         for xml_node in children_xml_node:
-            child_node = TreeNode(xml_node, node.level + 1)
+            child_node = TreeNode(xml_node, node.layer + 1)
             class_name = child_node.attrib['class']
 
             if class_name not in class_count.keys():
@@ -383,7 +383,7 @@ class XmlTree():
                         node_1 = self.nodes[node_id_1]
                         node_2 = self.nodes[node_id_2]
                         if self.is_ans(node_1, node_2):
-                            if node_1.level < node_2.level:
+                            if node_1.layer < node_2.layer:
                                 filter_cluster_id.add(j)
                                 filter_information[j] = i
                             else:

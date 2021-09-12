@@ -3,7 +3,7 @@ class TreeNode(object):
     xml树节点
     """
 
-    def __init__(self, xml_node, level):
+    def __init__(self, xml_node, layer):
         self.xml_node = xml_node
         self.attrib = {}
         for key, value in xml_node.attrib.items():
@@ -14,7 +14,7 @@ class TreeNode(object):
         self.changed_attributes = []
         self.is_changed = False
         self.id = -1  # 在结点数组中的id
-        self.level = level  # 层级
+        self.layer = layer  # 层级
         self.class_index = -1
         self.xpath = ''
         self.width = -1

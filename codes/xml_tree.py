@@ -10,6 +10,7 @@ class XmlTree(object):
         self.nodes = []
         self.root_node = root_node
         self.id = -1
+        self.layers = {}  # 层次 用于搜集每一层的节点
         self.clusters = {}  # 聚类
         self.clusters_id = 1  # 聚类的id从1开始
 
@@ -29,6 +30,11 @@ class XmlTree(object):
         self.nodes.append(node)
         self.id += 1
 
+        if node.layer not in self.layers:
+            self.layers[node.layer] = [node.id]
+        else:
+            self.layers[node.layer].append(node.id)
+
         children_xml_node = node.xml_node.getchildren()
 
         if len(children_xml_node) == 0:
@@ -38,7 +44,7 @@ class XmlTree(object):
         class_count = {}
         # 构造子节点
         for xml_node in children_xml_node:
-            child_node = TreeNode(xml_node, node.level + 1)
+            child_node = TreeNode(xml_node, node.layer + 1)
             class_name = child_node.attrib['class']
 
             if class_name not in class_count.keys():
