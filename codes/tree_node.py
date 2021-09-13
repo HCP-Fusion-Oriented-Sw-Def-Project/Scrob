@@ -16,6 +16,7 @@ class TreeNode(object):
         self.idx = -1  # 在结点数组中的序号
         self.layer = layer  # 层级
         self.class_index = -1
+        self.full_xpath = ''
         self.xpath = ''
         self.width = -1
         self.height = -1

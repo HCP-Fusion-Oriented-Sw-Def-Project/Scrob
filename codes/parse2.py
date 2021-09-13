@@ -22,8 +22,8 @@ def is_xpath_similar(x_node, y_node):
     判断两个xpath的部分后缀是否相同
     如果相同 可以认为是匹配上的
     """
-    x_xpath_list = x_node.xpath[2:].split('/')
-    y_xpath_list = y_node.xpath[2:].split('/')
+    x_xpath_list = x_node.full_xpath[2:].split('/')
+    y_xpath_list = y_node.full_xpath[2:].split('/')
 
     common_item_num = 0
 
@@ -52,7 +52,7 @@ def nodes_matching_validate(x_nodes, y_nodes, x_png, y_png, num_str):
     leaf_nodes_count = 0
     for node in x_nodes:
         leaf_nodes_count += 1
-        if node.children == []:
+        if not node.children:
             for match_node in y_nodes:
                 if is_xpath_similar(node, match_node):
                     matched_nodes[node.idx] = match_node.idx
@@ -92,7 +92,7 @@ def cluster_validate(nodes, clusters, png, num_str):
         is_leaf = True
         for idx in idx_list:
             node = nodes[idx]
-            if node.children == []:
+            if not node.children:
                 x1, y1, x2, y2 = node.parse_bounds()
                 n_img = cv2.rectangle(n_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
             else:
@@ -119,9 +119,17 @@ def main():
     root_node = TreeNode(xml_root, 0)
     xml_tree = XmlTree(root_node)
     nodes = xml_tree.get_nodes()  # 只有调用这个函数之后 才进行了深度优先搜索
-    xml_tree.get_clusters_from_top_down()
-    print(xml_tree.clusters)
-    cluster_validate(nodes, xml_tree.clusters, png1, num_str)
+    # xml_tree.get_clusters_from_top_down()
+    # print(xml_tree.clusters)
+    # cluster_validate(nodes, xml_tree.clusters, png1, num_str)
+
+    # print(xml_tree.resource_id_count)
+    # print(xml_tree.text_count)
+    # print(xml_tree.content_count)
+
+    for node in xml_tree.leaf_nodes:
+        print(node.xpath)
+
 
 
 main()

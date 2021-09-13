@@ -15,6 +15,11 @@ class XmlTree(object):
         self.layers = {}  # 层次 用于搜集每一层的叶子节点
         self.clusters = {}  # 聚类
         self.clusters_id = 1  # 聚类的id从1开始
+        self.leaf_nodes = []
+        # 以下变量用于统计各个属性的数量 用于构造xpath
+        self.resource_id_count = {}
+        self.text_count = {}
+        self.content_count = {}
 
     def dfs(self, node, parent):
         """
@@ -25,8 +30,7 @@ class XmlTree(object):
             return
 
         node.parent = parent
-        if parent is not None:
-            node.ans_id = parent.idx
+
         node.idx = self.id
         node.get_size()
         self.nodes.append(node)
@@ -42,7 +46,7 @@ class XmlTree(object):
         if len(children_xml_node) == 0:
             return
 
-        # 记录结点的class_index 用于之后构造xpath使用
+        # 记录结点的class_index 用于之后构造full_xpath使用
         class_count = {}
         # 构造子节点
         for xml_node in children_xml_node:
@@ -62,9 +66,9 @@ class XmlTree(object):
         for child_node in node.children:
             self.dfs(child_node, node)
 
-    def get_nodes_xpath(self, node):
+    def get_nodes_full_xpath(self, node):
         """
-        构造节点的xpath
+        构造节点的full_xpath
         """
         if node.parent is None:
             return "//"
@@ -75,27 +79,137 @@ class XmlTree(object):
         # 获得父节点xpath
         parent_node = node.parent
 
-        parent_xpath = parent_node.xpath
+        parent_full_xpath = parent_node.full_xpath
 
-        if parent_node.xpath == '':
-            parent_xpath = self.get_nodes_xpath(parent_node)
+        if parent_node.full_xpath == '':
+            parent_full_xpath = self.get_nodes_full_xpath(parent_node)
 
-        if parent_xpath != '//':
-            xpath = parent_xpath + '/' + xpath_class_index
-            node.xpath = xpath
-            return xpath
+        if parent_full_xpath != '//':
+            full_xpath = parent_full_xpath + '/' + xpath_class_index
+            node.full_xpath = full_xpath
+            return full_xpath
 
         else:
-            xpath = parent_xpath + xpath_class_index
-            node.xpath = xpath
-            return xpath
+            full_xpath = parent_full_xpath + xpath_class_index
+            node.full_xpath = full_xpath
+            return full_xpath
+
+    def get_leaf_nodes_stat(self):
+        """
+        统计叶子节点属性的数目
+        """
+        # resource-id text content-desc
+        for node in self.leaf_nodes:
+            resource_id = node.attrib['resource-id']
+            text = node.attrib['text']
+            content = node.attrib['content-desc']
+
+            if resource_id not in self.resource_id_count:
+                self.resource_id_count[resource_id] = 1
+            else:
+                self.resource_id_count[resource_id] += 1
+
+            if text not in self.text_count:
+                self.text_count[text] = 1
+            else:
+                self.text_count[text] += 1
+
+            if content not in self.content_count:
+                self.content_count[content] = 1
+            else:
+                self.content_count[content] += 1
+
+    def get_leaf_nodes_xpath(self):
+        """
+        构造叶子节点的xpath用于定位
+        """
+
+        self.get_leaf_nodes_stat()
+
+        for node in self.leaf_nodes:
+            class_name = node.attrib['class']
+            resource_id = node.attrib['resource-id']
+            text = node.attrib['text']
+            content = node.attrib['content-desc']
+
+            if resource_id in self.resource_id_count and self.resource_id_count[resource_id] == 1:
+                node.xpath = '//' + class_name + '[' + '@resource-id=' + '"' + resource_id + '"' + ']'
+                continue
+
+            if text in self.text_count and self.text_count[text] == 1:
+                node.xpath = '//' + class_name + '[' + '@text=' + '"' + text + '"' + ']'
+                continue
+
+            if content in self.content_count and self.content_count[content] == 1:
+                node.xpath = '//' + class_name + '[' + '@content=' + '"' + text + '"' + ']'
+                continue
+
+            id_text_count = 0
+            id_content_count = 0
+            text_content_count = 0
+            id_text_content_count = 0
+
+            for tmp_node in self.leaf_nodes:
+                if tmp_node.attrib['resource-id'] == resource_id and \
+                        tmp_node.attrib['text'] == text:
+                    id_text_count += 1
+
+                if tmp_node.attrib['resource-id'] == resource_id and \
+                        tmp_node.attrib['content-desc'] == content:
+                    id_content_count += 1
+
+                if tmp_node.attrib['text'] == text and \
+                        tmp_node.attrib['content-desc'] == content:
+                    text_content_count += 1
+
+                if tmp_node.attrib['resource-id'] == resource_id and \
+                        tmp_node.attrib['text'] == text and \
+                        tmp_node.attrib['content-desc'] == content:
+                    id_text_content_count += 1
+
+            if id_text_count == 1:
+                node.xpath = ('//' + class_name + '[' +
+                              '@resource-id=' + '"' + resource_id + '"' +
+                              '&&' + '@text=' + '"' + text + '"' + ']')
+                continue
+
+            if id_content_count == 1:
+                node.xpath = ('//' + class_name + '[' +
+                              '@resource-id=' + '"' + resource_id + '"' +
+                              '&&' + '@content-desc=' + '"' + content + '"' + ']')
+                continue
+
+            if text_content_count == 1:
+                node.xpath = ('//' + class_name + '[' +
+                              '@text=' + '"' + text + '"' +
+                              '&&' + '@content-desc=' + '"' + content + '"' + ']')
+                continue
+
+            if id_text_content_count == 1:
+                node.xpath = ('//' + class_name + '[' +
+                              '@resource-id=' + '"' + resource_id + '"' +
+                              '&&' + '@text=' + '"' + text + '"' +
+                              '&&' + '@content-desc=' + '"' + content + '"' + ']')
+                continue
+
+            # 如果全部不满足 那就等于full_xpath
+            node.xpath = node.full_xpath
 
     def get_nodes(self):
         self.dfs(self.root_node, None)
 
         for node in self.nodes:
-            self.get_nodes_xpath(node)
+            self.get_nodes_full_xpath(node)
             node.get_descendants(node)
+            if not node.children:
+                self.leaf_nodes.append(node)
+
+        for node in self.nodes[1:]:
+            # 去除字符串的空格
+            node.attrib['text'] = node.attrib['text'].replace(' ', '')
+            node.attrib['content-desc'] = node.attrib['content-desc'].replace(' ', '')
+
+        self.get_leaf_nodes_xpath()
 
         self.nodes = self.nodes[1:]  # 第一个根节点无实际含义
 
