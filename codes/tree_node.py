@@ -13,7 +13,7 @@ class TreeNode(object):
         self.descendants = []  # 节点的子孙节点
         self.changed_attributes = []
         self.is_changed = False
-        self.id = -1  # 在结点数组中的id
+        self.idx = -1  # 在结点数组中的序号
         self.layer = layer  # 层级
         self.class_index = -1
         self.xpath = ''

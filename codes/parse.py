@@ -94,8 +94,8 @@ class XmlTree():
 
         node.parent = parent
         if parent is not None:
-            node.ans_id = parent.id
-        node.id = self.id
+            node.ans_id = parent.idx
+        node.idx = self.id
         node.get_size()
         self.nodes.append(node)
         self.id += 1
@@ -172,7 +172,7 @@ class XmlTree():
         ans_id_to = {}
         for node in self.nodes[1:]:
             if 'Layout' in node.attrib['class']:
-                ans_id_to[node.id] = node.ans_id
+                ans_id_to[node.idx] = node.ans_id
 
         for node in self.nodes[1:]:
             ans_id = node.ans_id
@@ -180,9 +180,9 @@ class XmlTree():
             # 更新去除layout后的祖先节点
             node.ans_id = ans
             if ans in self.ans_bind and ans != -1:
-                self.ans_bind[ans].append(node.id)
+                self.ans_bind[ans].append(node.idx)
             else:
-                self.ans_bind.update({ans: [node.id]})
+                self.ans_bind.update({ans: [node.idx]})
 
     def to_ans(self, ans_id, ans_id_to):
         """
@@ -225,11 +225,11 @@ class XmlTree():
         # for des in node_2.descendants:
         #     descendants_id_2.append(des.id)
 
-        if node_1.id in self.ans_bind:
-            descendants_id_1 = self.ans_bind[node_1.id]
+        if node_1.idx in self.ans_bind:
+            descendants_id_1 = self.ans_bind[node_1.idx]
 
-        if node_2.id in self.ans_bind:
-            descendants_id_2 = self.ans_bind[node_2.id]
+        if node_2.idx in self.ans_bind:
+            descendants_id_2 = self.ans_bind[node_2.idx]
 
         descendant_sim = self.descendants_similar(descendants_id_1, descendants_id_2)
 
@@ -287,21 +287,21 @@ class XmlTree():
         node_1_ans = node_1.parent
 
         while node_1_ans != node_2:
-            if node_1_ans.id == 0:
+            if node_1_ans.idx == 0:
                 break
             node_1_ans = node_1_ans.parent
 
-        if node_1_ans.id != 0:
+        if node_1_ans.idx != 0:
             flag = True
 
         node_2_ans = node_2.parent
 
         while node_2_ans != node_1:
-            if node_2_ans.id == 0:
+            if node_2_ans.idx == 0:
                 break
             node_2_ans = node_2_ans.parent
 
-        if node_2_ans.id != 0:
+        if node_2_ans.idx != 0:
             flag = True
 
         return flag
@@ -363,9 +363,9 @@ class XmlTree():
         for node in self.nodes[1:]:
             if node.cluster_id != -1:
                 if node.cluster_id not in self.clusters:
-                    self.clusters[node.cluster_id] = [node.id]
+                    self.clusters[node.cluster_id] = [node.idx]
                 else:
-                    self.clusters[node.cluster_id].append(node.id)
+                    self.clusters[node.cluster_id].append(node.idx)
 
     def filter_clusters(self):
         """
