@@ -126,11 +126,17 @@ def main():
     # for node in xml_tree.leaf_nodes:
     #      print(node.xpath)
 
-    print(xml_tree.branch_resource_id_count)
-    print(xml_tree.branch_text_count)
-    print(xml_tree.branch_content_count)
+    # print(xml_tree.branch_resource_id_count)
+    # print(xml_tree.branch_text_count)
+    # print(xml_tree.branch_content_count)
 
+    # print(nodes[0].full_xpath)
 
+    for node in xml_tree.nodes:
+        if len(node.xpath) == 1:
+            print(node.xpath[0])
+        else:
+            print(node.xpath[1])
 
 
 main()
