@@ -17,7 +17,7 @@ class TreeNode(object):
         self.layer = layer  # 层级
         self.class_index = -1
         self.full_xpath = ''
-        self.xpath = ''
+        self.xpath = []
         self.width = -1
         self.height = -1
         self.cluster_id = -1  # 所属集群id

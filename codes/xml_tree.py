@@ -9,17 +9,24 @@ class XmlTree(object):
     """
 
     def __init__(self, root_node):
-        self.nodes = []
+        self.nodes = []  # 按照dfs搜集的节点 顺序为深度优先搜索
         self.root_node = root_node
         self.id = -1
         self.layers = {}  # 层次 用于搜集每一层的叶子节点
         self.clusters = {}  # 聚类
         self.clusters_id = 1  # 聚类的id从1开始
         self.leaf_nodes = []
-        # 以下变量用于统计各个属性的数量 用于构造xpath
-        self.resource_id_count = {}
-        self.text_count = {}
-        self.content_count = {}
+        self.branch_nodes = []
+
+        # 以下变量用于统计叶子各个属性的数量 用于构造xpath
+        self.leaf_resource_id_count = {}
+        self.leaf_text_count = {}
+        self.leaf_content_count = {}
+
+        # 用于统计分支节点的各个属性的数量 用于构造xpath
+        self.branch_resource_id_count = {}
+        self.branch_text_count = {}
+        self.branch_content_count = {}
 
     def dfs(self, node, parent):
         """
@@ -94,37 +101,56 @@ class XmlTree(object):
             node.full_xpath = full_xpath
             return full_xpath
 
-    def get_leaf_nodes_stat(self):
+    def get_nodes_stat(self):
         """
-        统计叶子节点属性的数目
+        统计节点属性的数目 叶子节点与叶间节点分开统计
         """
-        # resource-id text content-desc
+        # 叶子节点 resource-id text content-desc
         for node in self.leaf_nodes:
             resource_id = node.attrib['resource-id']
             text = node.attrib['text']
             content = node.attrib['content-desc']
 
-            if resource_id not in self.resource_id_count:
-                self.resource_id_count[resource_id] = 1
+            if resource_id not in self.leaf_resource_id_count:
+                self.leaf_resource_id_count[resource_id] = 1
             else:
-                self.resource_id_count[resource_id] += 1
+                self.leaf_resource_id_count[resource_id] += 1
 
-            if text not in self.text_count:
-                self.text_count[text] = 1
+            if text not in self.leaf_text_count:
+                self.leaf_text_count[text] = 1
             else:
-                self.text_count[text] += 1
+                self.leaf_text_count[text] += 1
 
-            if content not in self.content_count:
-                self.content_count[content] = 1
+            if content not in self.leaf_content_count:
+                self.leaf_content_count[content] = 1
             else:
-                self.content_count[content] += 1
+                self.leaf_content_count[content] += 1
+
+        # 分支节点 resource-id text content-desc
+        for node in self.branch_nodes:
+            resource_id = node.attrib['resource-id']
+            text = node.attrib['text']
+            content = node.attrib['content-desc']
+
+            if resource_id not in self.branch_resource_id_count:
+                self.branch_resource_id_count[resource_id] = 1
+            else:
+                self.branch_resource_id_count[resource_id] += 1
+
+            if text not in self.branch_text_count:
+                self.branch_text_count[text] = 1
+            else:
+                self.branch_text_count[text] += 1
+
+            if content not in self.branch_content_count:
+                self.branch_content_count[content] = 1
+            else:
+                self.branch_content_count[content] += 1
 
     def get_leaf_nodes_xpath(self):
         """
         构造叶子节点的xpath用于定位
         """
-
-        self.get_leaf_nodes_stat()
 
         for node in self.leaf_nodes:
             class_name = node.attrib['class']
@@ -132,17 +158,17 @@ class XmlTree(object):
             text = node.attrib['text']
             content = node.attrib['content-desc']
 
-            if resource_id in self.resource_id_count and self.resource_id_count[resource_id] == 1:
-                node.xpath = '//' + class_name + '[' + '@resource-id=' + '"' + resource_id + '"' + ']'
-                continue
+            if resource_id in self.leaf_resource_id_count and self.leaf_resource_id_count[resource_id] == 1:
+                xpath = '//' + class_name + '[' + '@resource-id=' + '"' + resource_id + '"' + ']'
+                node.xpath.append(xpath)
 
-            if text in self.text_count and self.text_count[text] == 1:
-                node.xpath = '//' + class_name + '[' + '@text=' + '"' + text + '"' + ']'
-                continue
+            if text in self.leaf_text_count and self.leaf_text_count[text] == 1:
+                xpath = '//' + class_name + '[' + '@text=' + '"' + text + '"' + ']'
+                node.xpath.append(xpath)
 
-            if content in self.content_count and self.content_count[content] == 1:
-                node.xpath = '//' + class_name + '[' + '@content=' + '"' + text + '"' + ']'
-                continue
+            if content in self.leaf_content_count and self.leaf_content_count[content] == 1:
+                xpath = '//' + class_name + '[' + '@content=' + '"' + text + '"' + ']'
+                node.xpath.append(xpath)
 
             id_text_count = 0
             id_content_count = 0
@@ -168,32 +194,33 @@ class XmlTree(object):
                     id_text_content_count += 1
 
             if id_text_count == 1:
-                node.xpath = ('//' + class_name + '[' +
-                              '@resource-id=' + '"' + resource_id + '"' +
-                              '&&' + '@text=' + '"' + text + '"' + ']')
-                continue
+                xpath = ('//' + class_name + '[' +
+                         '@resource-id=' + '"' + resource_id + '"' +
+                         '&&' + '@text=' + '"' + text + '"' + ']')
+                node.xpath.append(xpath)
 
             if id_content_count == 1:
-                node.xpath = ('//' + class_name + '[' +
-                              '@resource-id=' + '"' + resource_id + '"' +
-                              '&&' + '@content-desc=' + '"' + content + '"' + ']')
-                continue
+                xpath = ('//' + class_name + '[' +
+                         '@resource-id=' + '"' + resource_id + '"' +
+                         '&&' + '@content-desc=' + '"' + content + '"' + ']')
+                node.xpath.append(xpath)
 
             if text_content_count == 1:
-                node.xpath = ('//' + class_name + '[' +
-                              '@text=' + '"' + text + '"' +
-                              '&&' + '@content-desc=' + '"' + content + '"' + ']')
-                continue
+                xpath = ('//' + class_name + '[' +
+                         '@text=' + '"' + text + '"' +
+                         '&&' + '@content-desc=' + '"' + content + '"' + ']')
+                node.xpath.append(xpath)
 
             if id_text_content_count == 1:
-                node.xpath = ('//' + class_name + '[' +
-                              '@resource-id=' + '"' + resource_id + '"' +
-                              '&&' + '@text=' + '"' + text + '"' +
-                              '&&' + '@content-desc=' + '"' + content + '"' + ']')
-                continue
+                xpath = ('//' + class_name + '[' +
+                         '@resource-id=' + '"' + resource_id + '"' +
+                         '&&' + '@text=' + '"' + text + '"' +
+                         '&&' + '@content-desc=' + '"' + content + '"' + ']')
+                node.xpath.append(xpath)
 
             # 如果全部不满足 那就等于full_xpath
-            node.xpath = node.full_xpath
+            # node.xpath = node.full_xpath
+            node.xpath.append(node.full_xpath)
 
     def get_nodes(self):
         self.dfs(self.root_node, None)
@@ -203,12 +230,18 @@ class XmlTree(object):
             node.get_descendants(node)
             if not node.children:
                 self.leaf_nodes.append(node)
+            else:
+                self.branch_nodes.append(node)
+
+        # 除去第一个根节点
+        self.branch_nodes = self.branch_nodes[1:]
 
         for node in self.nodes[1:]:
             # 去除字符串的空格
             node.attrib['text'] = node.attrib['text'].replace(' ', '')
             node.attrib['content-desc'] = node.attrib['content-desc'].replace(' ', '')
 
+        self.get_nodes_stat()
         self.get_leaf_nodes_xpath()
 
         self.nodes = self.nodes[1:]  # 第一个根节点无实际含义

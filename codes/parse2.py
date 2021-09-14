@@ -123,12 +123,13 @@ def main():
     # print(xml_tree.clusters)
     # cluster_validate(nodes, xml_tree.clusters, png1, num_str)
 
-    # print(xml_tree.resource_id_count)
-    # print(xml_tree.text_count)
-    # print(xml_tree.content_count)
+    # for node in xml_tree.leaf_nodes:
+    #      print(node.xpath)
 
-    for node in xml_tree.leaf_nodes:
-        print(node.xpath)
+    print(xml_tree.branch_resource_id_count)
+    print(xml_tree.branch_text_count)
+    print(xml_tree.branch_content_count)
+
 
 
 
