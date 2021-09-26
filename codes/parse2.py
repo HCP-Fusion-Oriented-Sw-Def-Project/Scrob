@@ -14,7 +14,54 @@ def parse_xml(file_name):
     root_node = TreeNode(xml_root, 0)
     xml_tree = XmlTree(root_node)
     nodes = xml_tree.get_nodes()
-    return nodes
+    return xml_tree, nodes
+
+
+def is_xpath_match(x_node, y_node):
+    """
+    直接看两个节点的xpath中有没有公共的
+    """
+
+    for x_xpath in x_node.xpath:
+        if x_xpath in y_node.xpath:
+            return True
+
+    return False
+
+
+def nodes_xpath_matching_validate(x_nodes, y_nodes, x_png, y_png, num_str):
+    """
+    验证使用构造的xpath去进行元素匹配的效果
+    """
+    matched_nodes = {}
+    leaf_nodes_count = 0
+    for node in x_nodes:
+        leaf_nodes_count += 1
+        if not node.children:
+            for match_node in y_nodes:
+                if is_xpath_match(node, match_node):
+                    matched_nodes[node.idx] = match_node.idx
+    # 读取图片
+    x_img = cv2.imread(x_png)
+    y_img = cv2.imread(y_png)
+
+    dir = '../nodes_xpath_matching_results/' + num_str
+
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+    for key, value in matched_nodes.items():
+        x_node = x_nodes[key]
+        y_node = y_nodes[value]
+
+        x1, y1, x2, y2 = x_node.parse_bounds()
+        cropped_x_img = x_img[y1:y2, x1:x2]
+
+        x3, y3, x4, y4 = y_node.parse_bounds()
+        cropped_y_img = y_img[y3:y4, x3:x4]
+
+        cv2.imwrite(dir + '/' + str(x_node.idx) + '.png', cropped_x_img)
+        cv2.imwrite(dir + '/' + str(x_node.idx) + 'matched.png', cropped_y_img)
 
 
 def is_xpath_similar(x_node, y_node):
@@ -56,6 +103,9 @@ def nodes_matching_validate(x_nodes, y_nodes, x_png, y_png, num_str):
             for match_node in y_nodes:
                 if is_xpath_similar(node, match_node):
                     matched_nodes[node.idx] = match_node.idx
+
+    print(len(matched_nodes) / leaf_nodes_count)
+
     # 读取图片
     x_img = cv2.imread(x_png)
     y_img = cv2.imread(y_png)
@@ -103,25 +153,35 @@ def cluster_validate(nodes, clusters, png, num_str):
 
 
 def main():
-    num_str = 'd1'
+    num_str = 'd13'
     xml1 = '../compare_resources/' + num_str + '/' + '1.xml'
     xml2 = '../compare_resources/' + num_str + '/' + '3.xml'
     png1 = '../compare_resources/' + num_str + '/' + '1.png'
     png2 = '../compare_resources/' + num_str + '/' + '3.png'
 
-    # nodes1 = parse_xml(xml1)
-    # nodes2 = parse_xml(xml2)
+    xml_tree1, nodes1 = parse_xml(xml1)
+    xml_tree2, nodes2 = parse_xml(xml2)
+
+
+    for node in nodes1:
+        print(node.xpath)
+
+    # nodes_xpath_matching_validate(nodes1, nodes2, png1, png2, num_str)
+    # cluster_validate(xml_tree2.nodes, xml_tree2.clusters, png2, num_str)
+
+    # print(xml_tree1.clusters)
+
 
     # nodes_matching_validate(nodes1, nodes2, png1, png2, num_str)
 
-    tree = ET.ElementTree(file=xml1)
-    xml_root = tree.getroot()
-    root_node = TreeNode(xml_root, 0)
-    xml_tree = XmlTree(root_node)
-    nodes = xml_tree.get_nodes()  # 只有调用这个函数之后 才进行了深度优先搜索
+    # tree = ET.ElementTree(file=xml1)
+    # xml_root = tree.getroot()
+    # root_node = TreeNode(xml_root, 0)
+    # xml_tree = XmlTree(root_node)
+    # nodes = xml_tree.get_nodes()  # 只有调用这个函数之后 才进行了深度优先搜索
+    #
     # xml_tree.get_clusters_from_top_down()
     # print(xml_tree.clusters)
-    # cluster_validate(nodes, xml_tree.clusters, png1, num_str)
 
     # for node in xml_tree.leaf_nodes:
     #      print(node.xpath)
@@ -131,12 +191,6 @@ def main():
     # print(xml_tree.branch_content_count)
 
     # print(nodes[0].full_xpath)
-
-    for node in xml_tree.nodes:
-        if len(node.xpath) == 1:
-            print(node.xpath[0])
-        else:
-            print(node.xpath[1])
 
 
 main()

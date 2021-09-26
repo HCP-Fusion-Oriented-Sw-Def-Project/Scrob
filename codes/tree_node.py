@@ -16,11 +16,11 @@ class TreeNode(object):
         self.idx = -1  # 在结点数组中的序号
         self.layer = layer  # 层级
         self.class_index = -1
-        self.full_xpath = ''
-        self.xpath = []
+        self.full_xpath = ''  # 绝对路径
+        self.xpath = []  # 所有有效的相对路径
         self.width = -1
         self.height = -1
-        self.cluster_id = -1  # 所属集群id
+        self.cluster_id = -1  # 所属聚类id
 
     def parse_bounds(self):
         """

@@ -174,7 +174,6 @@ class XmlTree(object):
         if ans_node is None:
             return ''
 
-
         node_class_name = cur_node.attrib['class']
         node_resource_id = cur_node.attrib['resource-id']
         node_text = cur_node.attrib['text']
@@ -452,6 +451,8 @@ class XmlTree(object):
         self.get_nodes_xpath()
 
         self.nodes = self.nodes[1:]  # 第一个根节点无实际含义
+
+        self.get_clusters_from_top_down() # 必须放在 self.nodes = self.nodes[1:] 的后面
 
         return self.nodes
 
