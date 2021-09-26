@@ -1,3 +1,6 @@
+from codes.utility import ChangedType
+
+
 class TreeNode(object):
     """
     xml树节点
@@ -8,18 +11,38 @@ class TreeNode(object):
         self.attrib = {}
         for key, value in xml_node.attrib.items():
             self.attrib[key] = xml_node.attrib[key]
+
         self.parent = None
         self.children = []
         self.descendants = []  # 节点的子孙节点
-        self.changed_attributes = []
-        self.is_changed = False
+
+        self.changed_type = ChangedType.REMAIN
+
+        # 用map来存储属性的变化状态
+        self.changed_attrs = {
+            'class': 0,
+            'resource-id': 0,
+            'text': 0,
+            'content-desc': 0,
+            'location': 0,
+            'size': 0,
+            'color': 0
+        }
+
         self.idx = -1  # 在结点数组中的序号
         self.layer = layer  # 层级
         self.class_index = -1
+
         self.full_xpath = ''  # 绝对路径
         self.xpath = []  # 所有有效的相对路径
+
         self.width = -1
         self.height = -1
+
+        # 节点左上角坐标
+        self.x_loc = -1
+        self.y_loc = -1
+
         self.cluster_id = -1  # 所属聚类id
 
     def parse_bounds(self):
@@ -44,12 +67,14 @@ class TreeNode(object):
         # 返回元素左上角和右下角坐标
         return x1, y1, x2, y2
 
-    def get_size(self):
+    def get_bounds(self):
         """
-        获取节点的长和宽
+        获取节点的长和宽，坐标
         """
         if 'bounds' in self.attrib:
             x1, y1, x2, y2 = self.parse_bounds()
+            self.x_loc = x1
+            self.y_loc = y1
             self.width = x2 - x1
             self.height = y2 - y1
 

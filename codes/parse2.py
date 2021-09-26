@@ -4,29 +4,9 @@ import cv2
 import xml.etree.ElementTree as ET
 from PIL import Image, ImageDraw
 
-from tree_node import TreeNode
-from xml_tree import XmlTree
+from codes.utility import *
 
-
-def parse_xml(file_name):
-    tree = ET.ElementTree(file=file_name)
-    xml_root = tree.getroot()
-    root_node = TreeNode(xml_root, 0)
-    xml_tree = XmlTree(root_node)
-    nodes = xml_tree.get_nodes()
-    return xml_tree, nodes
-
-
-def is_xpath_match(x_node, y_node):
-    """
-    直接看两个节点的xpath中有没有公共的
-    """
-
-    for x_xpath in x_node.xpath:
-        if x_xpath in y_node.xpath:
-            return True
-
-    return False
+from xml_tree import parse_xml
 
 
 def nodes_xpath_matching_validate(x_nodes, y_nodes, x_png, y_png, num_str):
@@ -39,7 +19,7 @@ def nodes_xpath_matching_validate(x_nodes, y_nodes, x_png, y_png, num_str):
         leaf_nodes_count += 1
         if not node.children:
             for match_node in y_nodes:
-                if is_xpath_match(node, match_node):
+                if is_xpath_matched(node, match_node):
                     matched_nodes[node.idx] = match_node.idx
     # 读取图片
     x_img = cv2.imread(x_png)
@@ -152,6 +132,39 @@ def cluster_validate(nodes, clusters, png, num_str):
             cv2.imwrite(dir + '/' + str(key) + '.png', n_img)
 
 
+def nodes_tag(nodes1, nodes2):
+    """
+    对节点属性进行标记 判断是时有时无 还是属性变化
+    """
+    for x_node in nodes1:
+        has_matched = False
+        for y_node in nodes2:
+            if is_xpath_matched(x_node, y_node):
+                has_matched = True
+                if x_node.changed_type == ChangedType.REMAIN or y_node.changed_type == ChangedType.REMAIN:
+                    nodes_attr_tag(x_node, y_node)
+
+        if not has_matched:
+            x_node.changed_type = ChangedType.STATE
+
+    for y_node in nodes2:
+        has_matched = False
+        for x_node in nodes1:
+            if is_xpath_matched(x_node, y_node):
+                has_matched = True
+
+        if not has_matched:
+            y_node.changed_type = ChangedType.STATE
+
+
+def nodes_tag_test():
+    xml1 = '../tag_resources/d1/1.xml'
+    xml2 = '../tag_resources/d1/2.xml'
+
+    xml_tree1, nodes1 = parse_xml(xml1)
+    xml_tree2, nodes2 = parse_xml(xml2)
+
+
 def main():
     num_str = 'd13'
     xml1 = '../compare_resources/' + num_str + '/' + '1.xml'
@@ -162,7 +175,6 @@ def main():
     xml_tree1, nodes1 = parse_xml(xml1)
     xml_tree2, nodes2 = parse_xml(xml2)
 
-
     for node in nodes1:
         print(node.xpath)
 
@@ -170,7 +182,6 @@ def main():
     # cluster_validate(xml_tree2.nodes, xml_tree2.clusters, png2, num_str)
 
     # print(xml_tree1.clusters)
-
 
     # nodes_matching_validate(nodes1, nodes2, png1, png2, num_str)
 
@@ -193,4 +204,4 @@ def main():
     # print(nodes[0].full_xpath)
 
 
-main()
+nodes_tag_test()

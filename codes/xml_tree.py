@@ -1,6 +1,7 @@
-from tree_node import TreeNode
+import xml.etree.ElementTree as ET
 
-from codes.utility import delete_num_in_str
+from str_utility import delete_num_in_str
+from tree_node import TreeNode
 
 
 class XmlTree(object):
@@ -39,7 +40,7 @@ class XmlTree(object):
         node.parent = parent
 
         node.idx = self.id
-        node.get_size()
+        node.get_bounds()
         self.nodes.append(node)
         self.id += 1
 
@@ -452,7 +453,7 @@ class XmlTree(object):
 
         self.nodes = self.nodes[1:]  # 第一个根节点无实际含义
 
-        self.get_clusters_from_top_down() # 必须放在 self.nodes = self.nodes[1:] 的后面
+        self.get_clusters_from_top_down()  # 必须放在 self.nodes = self.nodes[1:] 的后面
 
         return self.nodes
 
@@ -518,3 +519,15 @@ class XmlTree(object):
             return (0.8 + id_sim) / 2
         else:
             return 0
+
+
+def parse_xml(file_name):
+    """
+    解析xml文件 返回一个树和树中所有的节点
+    """
+    tree = ET.ElementTree(file=file_name)
+    xml_root = tree.getroot()
+    root_node = TreeNode(xml_root, 0)
+    xml_tree = XmlTree(root_node)
+    nodes = xml_tree.get_nodes()
+    return xml_tree, nodes
