@@ -132,31 +132,6 @@ def cluster_validate(nodes, clusters, png, num_str):
             cv2.imwrite(dir + '/' + str(key) + '.png', n_img)
 
 
-def nodes_tag(nodes1, nodes2):
-    """
-    对节点属性进行标记 判断是时有时无 还是属性变化
-    """
-    for x_node in nodes1:
-        has_matched = False
-        for y_node in nodes2:
-            if is_xpath_matched(x_node, y_node):
-                has_matched = True
-                if x_node.changed_type == ChangedType.REMAIN or y_node.changed_type == ChangedType.REMAIN:
-                    nodes_attr_tag(x_node, y_node)
-
-        if not has_matched:
-            x_node.changed_type = ChangedType.STATE
-
-    for y_node in nodes2:
-        has_matched = False
-        for x_node in nodes1:
-            if is_xpath_matched(x_node, y_node):
-                has_matched = True
-
-        if not has_matched:
-            y_node.changed_type = ChangedType.STATE
-
-
 def nodes_tag_test():
     xml1 = '../tag_resources/d1/1.xml'
     xml2 = '../tag_resources/d1/2.xml'

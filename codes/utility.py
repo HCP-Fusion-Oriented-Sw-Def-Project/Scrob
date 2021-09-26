@@ -43,7 +43,7 @@ def is_size_changed(x_node, y_node):
     return False
 
 
-def nodes_attr_tag(x_node, y_node):
+def get_nodes_attr_tag(x_node, y_node):
     """
     对节点属性是否变化进行标记
     """
@@ -97,3 +97,28 @@ def nodes_attr_tag(x_node, y_node):
         y_node.changed_type = ChangedType.ATTR
 
     # todo 图片颜色判断
+
+
+def get_nodes_tag(x_nodes, y_nodes):
+    """
+    对节点属性进行标记 判断是时有时无 还是属性变化
+    """
+    for x_node in x_nodes:
+        has_matched = False
+        for y_node in y_nodes:
+            if is_xpath_matched(x_node, y_node):
+                has_matched = True
+                if x_node.changed_type == ChangedType.REMAIN or y_node.changed_type == ChangedType.REMAIN:
+                    get_nodes_attr_tag(x_node, y_node)
+
+        if not has_matched:
+            x_node.changed_type = ChangedType.STATE
+
+    for y_node in y_nodes:
+        has_matched = False
+        for x_node in x_nodes:
+            if is_xpath_matched(x_node, y_node):
+                has_matched = True
+
+        if not has_matched:
+            y_node.changed_type = ChangedType.STATE
