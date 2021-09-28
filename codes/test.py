@@ -110,6 +110,9 @@ def nodes_matching_validate(x_nodes, y_nodes, x_png, y_png, num_str):
 
 
 def cluster_validate(nodes, clusters, png, num_str):
+    """
+    验证聚类效果
+    """
     img = cv2.imread(png)
     dir = '../cluster_results/' + num_str
 
@@ -132,16 +135,102 @@ def cluster_validate(nodes, clusters, png, num_str):
             cv2.imwrite(dir + '/' + str(key) + '.png', n_img)
 
 
-def nodes_tag_test():
-    xml1 = '../tag_resources/d1/1.xml'
-    xml2 = '../tag_resources/d1/2.xml'
+def get_list_node_test():
+    """
+    验证寻找列表节点的根节点的效果
+    """
+
+    res = 'd15'
+
+    xml1 = '../tag_resources/' + res + '/1.xml'
+    xml2 = '../tag_resources/' + res + '/2.xml'
+    png1 = '../tag_resources/' + res + '/1.png'
+    png2 = '../tag_resources/' + res + '/2.png'
 
     xml_tree1, nodes1 = parse_xml(xml1)
     xml_tree2, nodes2 = parse_xml(xml2)
 
+    # 进行节点标记
+    get_nodes_tag(nodes1, nodes2)
+
+    nodes_list = []
+    # # 遍历所有聚类 去寻找属性值变化了的节点 然后 去找这个聚类中节点的公共祖先节点即可 (事实证明 这种方法不行)
+    # for key in xml_tree1.clusters:
+    #     idx_list = xml_tree1.clusters[key]
+    #     if nodes1[idx_list[0]].changed_type != ChangedType.REMAIN:
+    #         for i in range(len(idx_list) - 1):
+    #             for j in range(i + 1, len(idx_list)):
+    #                 node_i = nodes1[i]
+    #                 node_j = nodes1[j]
+    #                 if node_i.parent != node_j.parent:
+    #                     common_ans = get_nodes_common_ans(node_i, node_j)
+    #                     if common_ans not in nodes_list:
+    #                         nodes_list.append(common_ans)
+    #
+    # img = cv2.imread(png1)
+    # dir = '../get_list_nodes_results/'
+    # count = 0
+    # for node in nodes_list:
+    #     n_img = img.copy()
+    #     for child in node.children:
+    #         x1, y1, x2, y2 = child.parse_bounds()
+    #         n_img = cv2.rectangle(n_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+    #
+    #     cv2.imwrite(dir + '/' + str(count) + '.png', n_img)
+    #     count += 1
+
+    # 方法2: 先找属性变化的节点 然后再判断其是否存在于某个聚类当中 然后再去找它的祖先节点
+
+    # 找到属性变化的节点
+    attr_changed_nodes = []
+    for node in nodes1:
+        if node.children == [] and node.changed_type != ChangedType.REMAIN:
+            attr_changed_nodes.append(node)
+
+    # 判断其是否属于某个聚类当中
+    nodes_list = []
+    for node in attr_changed_nodes:
+        # print(node.attrib)
+        if node.cluster_id != -1 and node.cluster_id not in xml_tree1.attr_changed_clusters:  # 说明存在于某个聚类当中
+            # print(node.attrib)
+            idx_list = xml_tree1.clusters[node.cluster_id]
+            xml_tree1.attr_changed_clusters.add(node.cluster_id)
+            node_i = nodes1[idx_list[0]]
+            node_j = nodes1[idx_list[1]]
+            common_ans = get_nodes_common_ans(node_i, node_j)
+            if common_ans not in nodes_list and common_ans.full_xpath != '//':
+                nodes_list.append(common_ans)
+
+    img = cv2.imread(png1)
+    dir = '../get_list_nodes_results/' + res
+
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+    count = 0
+    for node in nodes_list:
+        flag = False
+        n_img = img.copy()
+        for child in node.children:
+            if has_desc_in_changed_cls(child, xml_tree1):
+                flag = True
+                x1, y1, x2, y2 = child.parse_bounds()
+                n_img = cv2.rectangle(n_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        if flag:
+            cv2.imwrite(dir + '/' + str(count) + '.png', n_img)
+            count += 1
+
+
+
+
+
+
+
+
 
 def main():
-    num_str = 'd13'
+    num_str = 'd5'
     xml1 = '../compare_resources/' + num_str + '/' + '1.xml'
     xml2 = '../compare_resources/' + num_str + '/' + '3.xml'
     png1 = '../compare_resources/' + num_str + '/' + '1.png'
@@ -150,11 +239,8 @@ def main():
     xml_tree1, nodes1 = parse_xml(xml1)
     xml_tree2, nodes2 = parse_xml(xml2)
 
-    for node in nodes1:
-        print(node.xpath)
-
     # nodes_xpath_matching_validate(nodes1, nodes2, png1, png2, num_str)
-    # cluster_validate(xml_tree2.nodes, xml_tree2.clusters, png2, num_str)
+    cluster_validate(xml_tree1.nodes, xml_tree1.clusters, png1, num_str)
 
     # print(xml_tree1.clusters)
 
@@ -179,4 +265,5 @@ def main():
     # print(nodes[0].full_xpath)
 
 
-nodes_tag_test()
+get_list_node_test()
+# main()

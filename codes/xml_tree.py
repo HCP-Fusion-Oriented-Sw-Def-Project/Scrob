@@ -14,8 +14,11 @@ class XmlTree(object):
         self.root_node = root_node
         self.id = -1  # 深度优先搜索中节点的序号
         self.layers = {}  # 层次 用于搜集每一层的叶子节点
+
         self.clusters = {}  # 聚类
         self.clusters_id = 1  # 聚类的id从1开始
+        self.attr_changed_clusters = set()  # 内部中存在元素会变化的聚类的id集合
+
         self.leaf_nodes = []
         self.branch_nodes = []
 
@@ -58,6 +61,10 @@ class XmlTree(object):
         class_count = {}
         # 构造子节点
         for xml_node in children_xml_node:
+
+            if 'package' in xml_node.attrib and xml_node.attrib['package'] == 'com.android.systemui':
+                continue
+
             child_node = TreeNode(xml_node, node.layer + 1)
             class_name = child_node.attrib['class']
 

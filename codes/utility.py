@@ -122,3 +122,48 @@ def get_nodes_tag(x_nodes, y_nodes):
 
         if not has_matched:
             y_node.changed_type = ChangedType.STATE
+
+
+def get_nodes_common_ans(x_node, y_node):
+    """
+    获取两个节点的最低公共祖先节点
+    """
+
+    ans = x_node.parent
+
+    while y_node not in ans.descendants:
+        if ans.full_xpath != '//':
+            ans = ans.parent
+        else:
+            return None
+
+    return ans
+
+
+# def has_cls_desc_changed(node):
+#     """
+#     判断一个节点是否有子孙节点发生变化
+#     且这个子孙节点存在于某个聚类当中
+#     符合上述两个特征的节点 通常都处于列表节点当中
+#     """
+#
+#     for desc in node.descendants:
+#         if desc.children == [] and desc.changed_type != ChangedType.REMAIN and desc.cluster_id != -1:
+#             return True
+#
+#     return False
+
+
+def has_desc_in_changed_cls(node, xml_tree):
+    """
+    判断一个节点是否有子孙节点
+    存在于（会变化的聚类：指的是内部含有元素会变化）当中
+    """
+
+    for desc in node.descendants:
+        if not desc.children:
+            for cluster_id in xml_tree.attr_changed_clusters:
+                if desc.cluster_id == cluster_id:
+                    return True
+
+    return False
