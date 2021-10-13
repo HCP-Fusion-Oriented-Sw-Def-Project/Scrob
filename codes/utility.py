@@ -1,3 +1,4 @@
+import cv2
 from enum import Enum
 
 
@@ -43,7 +44,47 @@ def is_size_changed(x_node, y_node):
     return False
 
 
-def get_nodes_attr_tag(x_node, y_node):
+def is_image_changed(x_node, y_node, x_tree, y_tree):
+    """
+    判断图片颜色是否发生变化
+    """
+
+    x_img = cv2.imread(x_tree.img_path)
+    y_img = cv2.imread(y_tree.img_path)
+
+    # 获取截图
+    x1, y1, x2, y2 = x_node.parse_bounds()
+    cropped_x_img = x_img[y1:y2, x1:x2]
+
+    x3, y3, x4, y4 = y_node.parse_bounds()
+    cropped_y_img = y_img[y3:y4, x3:x4]
+
+    width = int((cropped_x_img.shape[0] + cropped_y_img.shape[0]) / 2)
+    height = int((cropped_x_img.shape[1] + cropped_y_img.shape[1]) / 2)
+
+    # 更改图片尺寸
+    cropped_x_img = cv2.resize(cropped_x_img, (width, height))
+    cropped_y_img = cv2.resize(cropped_y_img, (width, height))
+
+    # 转化为灰度图
+    cropped_x_img_grey = cv2.cvtColor(cropped_x_img, cv2.COLOR_BGR2BGRA)
+    cropped_y_img_grey = cv2.cvtColor(cropped_y_img, cv2.COLOR_BGR2BGRA)
+
+    # 计算两个图片所对应的直方图
+
+    x_hist = cv2.calcHist([cropped_x_img_grey], [0], None, [256], [0, 255])
+    y_hist = cv2.calcHist([cropped_y_img_grey], [0], None, [256], [0, 255])
+
+    # 相关性计算
+    res = cv2.compareHist(x_hist, y_hist, method=cv2.HISTCMP_CORREL)
+
+    if res >= 0.9:
+        return False
+
+    return True
+
+
+def get_nodes_attr_tag(x_node, y_node, x_tree, y_tree):
     """
     对节点属性是否变化进行标记
     """
@@ -92,24 +133,34 @@ def get_nodes_attr_tag(x_node, y_node):
         if y_node.changed_attrs['location'] == 0:
             y_node.changed_attrs['location'] = 1
 
+    if 'image' in x_node.attrib['class'].lower():
+        if is_image_changed(x_node, y_node, x_tree, y_tree):
+            is_changed = True
+            if x_node.changed_attrs['color'] == 0:
+                x_node.changed_attrs['color'] = 1
+            if y_node.changed_attrs['color'] == 0:
+                y_node.changed_attrs['color'] = 1
+
     if is_changed:
         x_node.changed_type = ChangedType.ATTR
         y_node.changed_type = ChangedType.ATTR
 
-    # todo 图片颜色判断
 
-
-def get_nodes_tag(x_nodes, y_nodes):
+def get_nodes_tag(x_tree, y_tree):
     """
     对节点属性进行标记 判断是时有时无 还是属性变化
     """
+
+    x_nodes = x_tree.get_nodes()
+    y_nodes = y_tree.get_nodes()
+
     for x_node in x_nodes:
         has_matched = False
         for y_node in y_nodes:
             if is_xpath_matched(x_node, y_node):
                 has_matched = True
                 if x_node.changed_type == ChangedType.REMAIN or y_node.changed_type == ChangedType.REMAIN:
-                    get_nodes_attr_tag(x_node, y_node)
+                    get_nodes_attr_tag(x_node, y_node, x_tree, y_tree)
 
         if not has_matched:
             x_node.changed_type = ChangedType.STATE

@@ -9,7 +9,7 @@ class XmlTree(object):
     xml树 存储结点信息
     """
 
-    def __init__(self, root_node):
+    def __init__(self, root_node, img_path):
         self.nodes = []  # 按照dfs搜集的节点 顺序为深度优先搜索
         self.root_node = root_node
         self.id = -1  # 深度优先搜索中节点的序号
@@ -31,6 +31,9 @@ class XmlTree(object):
         self.branch_resource_id_count = {}
         self.branch_text_count = {}
         self.branch_content_count = {}
+
+        # 对应图片的路径信息
+        self.img_path = img_path
 
     def dfs(self, node, parent):
         """
@@ -439,7 +442,7 @@ class XmlTree(object):
         self.get_branch_nodes_xpath()
         self.get_leaf_nodes_xpath()
 
-    def get_nodes(self):
+    def parse_nodes(self):
         self.dfs(self.root_node, None)
 
         for node in self.nodes:
@@ -461,6 +464,10 @@ class XmlTree(object):
         self.nodes = self.nodes[1:]  # 第一个根节点无实际含义
 
         self.get_clusters_from_top_down()  # 必须放在 self.nodes = self.nodes[1:] 的后面
+
+        return self.nodes
+
+    def get_nodes(self):
 
         return self.nodes
 
@@ -528,13 +535,13 @@ class XmlTree(object):
             return 0
 
 
-def parse_xml(file_name):
+def parse_xml(file_name, img_path):
     """
     解析xml文件 返回一个树和树中所有的节点
     """
     tree = ET.ElementTree(file=file_name)
     xml_root = tree.getroot()
     root_node = TreeNode(xml_root, 0)
-    xml_tree = XmlTree(root_node)
-    nodes = xml_tree.get_nodes()
+    xml_tree = XmlTree(root_node, img_path)
+    nodes = xml_tree.parse_nodes()
     return xml_tree, nodes

@@ -222,10 +222,39 @@ def get_list_node_test():
             count += 1
 
 
+def get_changed_image_test():
+    """
+    验证图片颜色变化检测的有效性
+    """
 
+    res = 'd2'
 
+    xml1 = '../tag_resources/' + res + '/1.xml'
+    xml2 = '../tag_resources/' + res + '/2.xml'
+    png1 = '../tag_resources/' + res + '/1.png'
+    png2 = '../tag_resources/' + res + '/2.png'
 
+    xml_tree1, nodes1 = parse_xml(xml1, png1)
+    xml_tree2, nodes2 = parse_xml(xml2, png2)
 
+    # 进行节点标记
+    get_nodes_tag(xml_tree1, xml_tree2)
+
+    img = cv2.imread(png1)
+    dir = '../get_changed_image_results'
+
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+    a = None
+    b = None
+
+    for node in nodes1:
+        if 'image' in node.attrib['class'].lower() and node.changed_attrs['color'] == 1:
+            x1, y1, x2, y2 = node.parse_bounds()
+            img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+    cv2.imwrite(dir + '/' + 'test_results.png', img)
 
 
 
@@ -265,5 +294,6 @@ def main():
     # print(nodes[0].full_xpath)
 
 
-get_list_node_test()
+# get_list_node_test()
 # main()
+get_changed_image_test()
