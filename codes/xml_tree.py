@@ -52,6 +52,26 @@ class CompleteTree(object):
 
         # print(len(self.list_clusters_nodes))
 
+    def get_added_single_nodes(self):
+        """
+        非列表叶子节点合并
+        """
+
+        for xml_tree in self.xml_tree_list:
+            if xml_tree != self.main_xml_tree:
+                single_nodes = xml_tree.get_single_nodes()
+                for x_node in single_nodes:
+                    flag = False
+                    for y_node in self.main_xml_tree.get_single_nodes():
+                        if x_node.full_xpath == y_node.full_xpath:
+                            flag = True
+
+                    if not flag:
+                        self.added_single_nodes.append(x_node)
+
+
+
+
 
 class XmlTree(object):
     """

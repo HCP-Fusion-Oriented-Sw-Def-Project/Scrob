@@ -289,6 +289,50 @@ def merge_cluster_test():
     print(tmp)
 
 
+def get_added_single_nodes_test():
+    """
+    对补充的非列表叶子节点进行检测
+    num1
+    num2
+    num8
+    num11
+    num12
+    num15
+    """
+
+    for i in range(1, 16):
+        path = '../tag_resources/d' + str(i)
+
+        # xml1 = '../tag_resources/d14/1.xml'
+        # xml2 = '../tag_resources/d14/2.xml'
+        # png1 = '../tag_resources/d14/1.png'
+        # png2 = '../tag_resources/d14/2.png'
+
+        xml1 = path + '/' + '1.xml'
+        xml2 = path + '/' + '2.xml'
+        png1 = path + '/' + '1.png'
+        png2 = path + '/' + '2.png'
+
+        xml_tree1, nodes1 = parse_xml(xml1, png1)
+        xml_tree2, nodes2 = parse_xml(xml2, png2)
+
+        # 进行标记
+        get_nodes_tag(xml_tree1, xml_tree2)
+
+        xml_tree1.get_list_clusters()
+        xml_tree2.get_list_clusters()
+
+        xml_tree_list = [xml_tree1, xml_tree2]
+
+        complete_tree = CompleteTree(xml_tree_list, xml_tree1)
+
+        complete_tree.get_added_single_nodes()
+
+        if i == 1:
+            for node in complete_tree.added_single_nodes:
+                print(node.attrib)
+
+
 def compare_test():
     """
     尝试进行对比
@@ -335,4 +379,5 @@ def main():
 # get_list_node_test()
 # main()
 # get_changed_image_test()
-merge_cluster_test()
+# merge_cluster_test()
+get_added_single_nodes_test()
