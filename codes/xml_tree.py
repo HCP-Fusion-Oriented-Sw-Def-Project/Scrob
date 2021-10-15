@@ -591,7 +591,17 @@ class XmlTree(object):
         for node in nodes_list:
             for descendant in node.descendants:
                 if descendant.children ==[] and descendant.cluster_id != -1:
+                    descendant.is_in_list = True
                     self.list_clusters_id.add(descendant.cluster_id)
+
+    def get_single_nodes(self):
+        """
+        获取非列表下的叶子节点
+        """
+
+        for node in self.leaf_nodes:
+            if node.is_in_list is False:
+                self.single_nodes.append(node)
 
 
 def parse_xml(file_name, img_path):
