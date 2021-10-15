@@ -12,13 +12,45 @@ class CompleteTree(object):
     最终 对比将会使用到这个树
     """
 
-    def __init__(self, xml_tree_list):
-        self.list_clusters = {}  # 同版本多个xml文件聚类的集合 并且只存储列表节点下的聚类
-        self.single_nodes = []  # 同版本非列表节点的集合 使用xpath来进行补充
+    def __init__(self, xml_tree_list, main_xml_tree):
+        self.list_clusters_nodes = []  # 同版本多个xml文件节点聚类的集合 并且只存储列表节点下的聚类 每个节点就代表了一个聚类
+        self.list_cluster_id = 1  # 重新对这些聚类进行编号
+        self.added_single_nodes = []  # 从其它xml文件中获取的single_nodes 使用xpath来进行补充
 
         self.xml_tree_list = xml_tree_list  # 存储各版本的xml_tree
 
-        self.main_xml_tree = xml_tree_list[0]
+        self.main_xml_tree = main_xml_tree  # 主要用于对比的xml树
+
+    def merge_cluster(self):
+        """
+        聚类合并
+        """
+
+        main_nodes = self.main_xml_tree.nodes
+        #  首先以main_xml_tree的聚类为基准
+        for cluster_id in self.main_xml_tree.list_clusters_id:
+            idx_list = self.main_xml_tree.clusters[cluster_id]
+
+            # 只用一个节点表示一个聚类 (比较不合理 之后需更改)
+            self.list_clusters_nodes.append(main_nodes[idx_list[0]])
+
+        # print(len(self.list_clusters_nodes))
+
+        # 遍历其它树
+        for xml_tree in self.xml_tree_list:
+            if xml_tree != self.main_xml_tree:
+                for cluster_id in xml_tree.list_clusters_id:
+                    idx_list = xml_tree.clusters[cluster_id]
+                    central_node = xml_tree.nodes[idx_list[0]]
+                    flag = False
+                    for node in self.list_clusters_nodes:
+                        sim = get_nodes_similar_score(central_node, node)
+                        if sim >= 0.8:
+                            flag = True
+                    if not flag:
+                        self.list_clusters_nodes.append(central_node)
+
+        # print(len(self.list_clusters_nodes))
 
 
 class XmlTree(object):
@@ -491,12 +523,6 @@ class XmlTree(object):
 
         return self.nodes
 
-    def get_nodes(self):
-        """
-        返回所有节点
-        """
-        return self.nodes
-
     def get_clusters_from_top_down(self):
         """
         自顶向下获取元素聚类
@@ -512,7 +538,7 @@ class XmlTree(object):
                     x_node = self.nodes[x_node_idx]
                     y_node = self.nodes[y_node_idx]
 
-                    sim = self.get_nodes_similar_score(x_node, y_node)
+                    sim = get_nodes_similar_score(x_node, y_node)
                     if sim >= 0.8:
                         # x_node已经属于某个聚类
                         if x_node.cluster_id != -1:
@@ -532,33 +558,6 @@ class XmlTree(object):
                             x_node.cluster_id = self.clusters_id
                             y_node.cluster_id = self.clusters_id
                             self.clusters_id += 1
-
-    def get_nodes_similar_score(self, x_node, y_node):
-        """
-        在同层次聚类的过程中判断两个叶子节点是否相似
-        """
-        x_node_id = x_node.attrib['resource-id']
-        y_node_id = y_node.attrib['resource-id']
-
-        flag = False
-        id_sim = 0
-
-        if len(x_node_id) == 0 or len(y_node_id) == 0:
-            flag = True
-
-        if x_node_id.find('/') != -1:
-            x_node_id = x_node_id.split('/')[1]
-
-        if y_node_id.find('/') != -1:
-            y_node_id = y_node_id.split('/')[1]
-
-        if delete_num_in_str(x_node_id) == delete_num_in_str(y_node_id) and not flag:
-            return 1
-
-        if x_node.width == y_node.width or x_node.height == y_node.height:
-            return (0.8 + id_sim) / 2
-        else:
-            return 0
 
     def get_list_clusters(self):
         """
@@ -590,7 +589,7 @@ class XmlTree(object):
         # 遍历这些列表根节点的子孙节点 将它们的子孙节点的聚类找出
         for node in nodes_list:
             for descendant in node.descendants:
-                if descendant.children ==[] and descendant.cluster_id != -1:
+                if descendant.children == [] and descendant.cluster_id != -1:
                     descendant.is_in_list = True
                     self.list_clusters_id.add(descendant.cluster_id)
 
@@ -602,6 +601,37 @@ class XmlTree(object):
         for node in self.leaf_nodes:
             if node.is_in_list is False:
                 self.single_nodes.append(node)
+
+        return self.single_nodes
+
+
+def get_nodes_similar_score(x_node, y_node):
+    """
+    在同层次聚类的过程中判断两个叶子节点是否相似
+    需要更改这种计算方式
+    """
+    x_node_id = x_node.attrib['resource-id']
+    y_node_id = y_node.attrib['resource-id']
+
+    flag = False
+    id_sim = 0
+
+    if len(x_node_id) == 0 or len(y_node_id) == 0:
+        flag = True
+
+    if x_node_id.find('/') != -1:
+        x_node_id = x_node_id.split('/')[1]
+
+    if y_node_id.find('/') != -1:
+        y_node_id = y_node_id.split('/')[1]
+
+    if delete_num_in_str(x_node_id) == delete_num_in_str(y_node_id) and not flag:
+        return 1
+
+    if x_node.width == y_node.width or x_node.height == y_node.height:
+        return (0.8 + id_sim) / 2
+    else:
+        return 0
 
 
 def parse_xml(file_name, img_path):

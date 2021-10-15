@@ -151,8 +151,8 @@ def get_nodes_tag(x_tree, y_tree):
     对节点属性进行标记 判断是时有时无 还是属性变化
     """
 
-    x_nodes = x_tree.get_nodes()
-    y_nodes = y_tree.get_nodes()
+    x_nodes = x_tree.nodes
+    y_nodes = y_tree.nodes
 
     for x_node in x_nodes:
         has_matched = False

@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 
 from codes.utility import *
 
-from xml_tree import parse_xml
+from xml_tree import parse_xml, CompleteTree
 
 
 def nodes_xpath_matching_validate(x_nodes, y_nodes, x_png, y_png, num_str):
@@ -257,13 +257,43 @@ def get_changed_image_test():
     cv2.imwrite(dir + '/' + 'test_results.png', img)
 
 
+def merge_cluster_test():
+    """
+    对聚类合并的结果进行检测
+    """
+
+    xml1 = '../tag_resources/d15/1.xml'
+    xml2 = '../tag_resources/d15/2.xml'
+    png1 = '../tag_resources/d15/1.png'
+    png2 = '../tag_resources/d15/2.png'
+
+    xml_tree1, nodes1 = parse_xml(xml1, png1)
+    xml_tree2, nodes2 = parse_xml(xml2, png2)
+
+    # 进行标记
+    get_nodes_tag(xml_tree1, xml_tree2)
+
+    xml_tree1.get_list_clusters()
+    xml_tree2.get_list_clusters()
+
+    xml_tree_list = [xml_tree1, xml_tree2]
+
+    complete_tree = CompleteTree(xml_tree_list, xml_tree1)
+
+    complete_tree.merge_cluster()
+
+    tmp = []
+    for node in complete_tree.list_clusters_nodes:
+        tmp.append(node.attrib['resource-id'])
+
+    print(tmp)
+
+
 def compare_test():
     """
     尝试进行对比
     查缺补漏 补充函数
     """
-
-
 
 
 def main():
@@ -304,4 +334,5 @@ def main():
 
 # get_list_node_test()
 # main()
-get_changed_image_test()
+# get_changed_image_test()
+merge_cluster_test()
