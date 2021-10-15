@@ -292,12 +292,6 @@ def merge_cluster_test():
 def get_added_single_nodes_test():
     """
     对补充的非列表叶子节点进行检测
-    num1
-    num2
-    num8
-    num11
-    num12
-    num15
     """
 
     for i in range(1, 16):
@@ -328,9 +322,8 @@ def get_added_single_nodes_test():
 
         complete_tree.get_added_single_nodes()
 
-        if i == 1:
-            for node in complete_tree.added_single_nodes:
-                print(node.attrib)
+        if complete_tree.added_single_nodes:
+            print(i)
 
 
 def compare_test():

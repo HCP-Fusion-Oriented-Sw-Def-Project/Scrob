@@ -609,7 +609,7 @@ class XmlTree(object):
         # 遍历这些列表根节点的子孙节点 将它们的子孙节点的聚类找出
         for node in nodes_list:
             for descendant in node.descendants:
-                if descendant.children == [] and descendant.cluster_id != -1:
+                if not descendant.children:
                     descendant.is_in_list = True
                     self.list_clusters_id.add(descendant.cluster_id)
 
