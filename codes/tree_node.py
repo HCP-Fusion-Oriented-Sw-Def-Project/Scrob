@@ -18,6 +18,9 @@ class TreeNode(object):
 
         self.changed_type = ChangedType.REMAIN
 
+        # 判断是否存在于列表中
+        self.is_in_list = False
+
         # 用map来存储属性的变化状态
         self.changed_attrs = {
             'class': 0,

@@ -1,7 +1,24 @@
 import xml.etree.ElementTree as ET
 
+from codes.utility import *
 from str_utility import delete_num_in_str
 from tree_node import TreeNode
+
+
+class CompleteTree(object):
+    """
+    版本树 将同版本多个xml的信息进行合并
+    合并 聚类 以及对非列表内部的节点进行补充
+    最终 对比将会使用到这个树
+    """
+
+    def __init__(self, xml_tree_list):
+        self.list_clusters = {}  # 同版本多个xml文件聚类的集合 并且只存储列表节点下的聚类
+        self.single_nodes = []  # 同版本非列表节点的集合 使用xpath来进行补充
+
+        self.xml_tree_list = xml_tree_list  # 存储各版本的xml_tree
+
+        self.main_xml_tree = xml_tree_list[0]
 
 
 class XmlTree(object):
@@ -15,12 +32,19 @@ class XmlTree(object):
         self.id = -1  # 深度优先搜索中节点的序号
         self.layers = {}  # 层次 用于搜集每一层的叶子节点
 
-        self.clusters = {}  # 聚类
+        self.clusters = {}  # 聚类 对所有节点进行
         self.clusters_id = 1  # 聚类的id从1开始
         self.attr_changed_clusters = set()  # 内部中存在元素会变化的聚类的id集合
 
+        # 列表节点中的聚类编号
+        self.list_clusters_id = set()
+
+        # 叶子节点
         self.leaf_nodes = []
+        # 分支节点
         self.branch_nodes = []
+        # 非列表内部节点
+        self.single_nodes = []
 
         # 以下变量用于统计叶子各个属性的数量 用于构造xpath
         self.leaf_resource_id_count = {}
@@ -468,7 +492,9 @@ class XmlTree(object):
         return self.nodes
 
     def get_nodes(self):
-
+        """
+        返回所有节点
+        """
         return self.nodes
 
     def get_clusters_from_top_down(self):
@@ -533,6 +559,39 @@ class XmlTree(object):
             return (0.8 + id_sim) / 2
         else:
             return 0
+
+    def get_list_clusters(self):
+        """
+        获取所有列表下的聚类编号
+        需在tag之后进行调用
+        """
+
+        # 找到属性变化的节点
+        attr_changed_nodes = []
+
+        for node in self.leaf_nodes:
+            if node.changed_type != ChangedType.REMAIN:
+                attr_changed_nodes.append(node)
+
+        # 用于存储列表节点根节点的列表
+        nodes_list = []
+
+        for node in attr_changed_nodes:
+            if node.cluster_id != -1 and node.cluster_id not in self.attr_changed_clusters:
+                id_list = self.clusters[node.cluster_id]
+                self.attr_changed_clusters.add(node.cluster_id)
+                node_i = self.nodes[id_list[0]]
+                node_j = self.nodes[id_list[1]]
+                common_ans = get_nodes_common_ans(node_i, node_j)
+
+                if common_ans not in nodes_list and common_ans.full_xpath != '//':
+                    nodes_list.append(common_ans)
+
+        # 遍历这些列表根节点的子孙节点 将它们的子孙节点的聚类找出
+        for node in nodes_list:
+            for descendant in node.descendants:
+                if descendant.children ==[] and descendant.cluster_id != -1:
+                    self.list_clusters_id.add(descendant.cluster_id)
 
 
 def parse_xml(file_name, img_path):

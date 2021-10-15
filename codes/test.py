@@ -257,6 +257,14 @@ def get_changed_image_test():
     cv2.imwrite(dir + '/' + 'test_results.png', img)
 
 
+def compare_test():
+    """
+    尝试进行对比
+    查缺补漏 补充函数
+    """
+
+
+
 
 def main():
     num_str = 'd5'
