@@ -49,7 +49,7 @@ class TreeNode(object):
         self.cluster_id = -1  # 所属聚类id
 
         # 用于对比时判断该节点是否已有匹配对象
-        self.has_matched = False
+        self.matched_node = None
 
     def parse_bounds(self):
         """

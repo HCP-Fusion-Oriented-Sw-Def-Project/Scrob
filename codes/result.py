@@ -1,3 +1,4 @@
+from utility import *
 from xml_tree import get_nodes_similar_score
 
 
@@ -48,16 +49,16 @@ class CompareResult(object):
         removed_cluster_nodes = []
         added_cluster_nodes = []
 
-        x_cluster_nodes = self.base_complete_tree.list_cluster_nodes
-        y_cluster_nodes = self.updated_complete_tree.list_cluster_nodes
+        base_cluster_nodes = self.base_complete_tree.list_cluster_nodes
+        updated_cluster_nodes = self.updated_complete_tree.list_cluster_nodes
 
         # 获取增删的聚类
-        for node in x_cluster_nodes:
-            if not is_cluster_existed(node, y_cluster_nodes):
+        for node in base_cluster_nodes:
+            if not is_cluster_existed(node, updated_cluster_nodes):
                 removed_cluster_nodes.append(node)
 
-        for node in y_cluster_nodes:
-            if not is_cluster_existed(node, x_cluster_nodes):
+        for node in updated_cluster_nodes:
+            if not is_cluster_existed(node, base_cluster_nodes):
                 added_cluster_nodes.append(node)
 
         # 找出实际GUI中的这些增删的聚类节点
@@ -82,6 +83,79 @@ class CompareResult(object):
                     flag = True
             if flag:
                 self.added_nodes.append(node)
+
+    def get_matched_single_nodes(self, node, compare_nodes, is_added):
+        """
+        对single_node进行匹配
+        is_added表示是否是从补充的节点匹配
+        """
+
+        if not is_added:
+            # 使用xpath进行匹配
+            for tmp_node in compare_nodes:
+                if tmp_node.matched_node is None and is_xpath_matched(node, tmp_node):
+                    node.matched_node = tmp_node
+                    tmp_node.matched_node = node
+                    return True
+
+            # 使用bounds进行匹配
+            for tmp_node in compare_nodes:
+                if tmp_node.matched_node is None and is_bounds_matched(node, tmp_node, self.width):
+                    node.matched_node = tmp_node
+                    tmp_node.matched_node = node
+                    return True
+
+            return False
+
+        else:
+            # 使用xpath进行匹配
+            for tmp_node in compare_nodes:
+                if tmp_node.matched_node is None and is_xpath_matched(node, tmp_node):
+                    return True
+
+            # 使用bounds进行匹配
+            for tmp_node in compare_nodes:
+                if tmp_node.matched_node is None and is_bounds_matched(node, tmp_node, self.width):
+                    return True
+
+            return False
+
+    def single_nodes_compare(self):
+        """
+        非列表叶子节点对比
+        """
+
+        base_single_nodes = self.base_complete_tree.main_xml_tree.single_nodes
+        base_added_single_nodes = self.base_complete_tree.added_single_nodes
+
+        updated_single_nodes = self.updated_complete_tree.main_xml_tree.single_nodes
+        updated_added_single_nodes = self.updated_complete_tree.added_single_nodes
+
+        unmatched_base_single_nodes = []
+        unmatched_updated_single_nodes = []
+
+        # 常规对比
+        for node in base_single_nodes:
+            if not self.get_matched_single_nodes(node, updated_single_nodes, False):
+                unmatched_base_single_nodes.append(node)
+
+        for node in updated_single_nodes:
+            if node.matched_node is None:
+                unmatched_updated_single_nodes.append(node)
+
+        # 补充对比
+        for node in unmatched_base_single_nodes:
+            if not self.get_matched_single_nodes(node, updated_added_single_nodes, True):
+                self.removed_nodes.append(node)
+
+        for node in unmatched_updated_single_nodes:
+            if not self.get_matched_single_nodes(node, base_added_single_nodes, True):
+                self.added_nodes.append(node)
+
+        # 搜集匹配上的节点
+        for node in base_single_nodes:
+            if node.matched_node is not None:
+                self.changed_nodes.append(node)
 
 
 def is_cluster_existed(node, compared_nodes):

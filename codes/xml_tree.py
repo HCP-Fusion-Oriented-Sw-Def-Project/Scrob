@@ -618,16 +618,15 @@ class XmlTree(object):
                         self.clusters_id += 1
                         self.list_clusters_id.add(descendant.cluster_id)
 
-
-
     def get_single_nodes(self):
         """
         获取非列表下的叶子节点
         """
 
-        for node in self.leaf_nodes:
-            if node.is_in_list is False:
-                self.single_nodes.append(node)
+        if not self.single_nodes:
+            for node in self.leaf_nodes:
+                if node.is_in_list is False:
+                    self.single_nodes.append(node)
 
         return self.single_nodes
 
