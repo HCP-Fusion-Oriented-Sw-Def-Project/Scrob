@@ -13,7 +13,7 @@ class CompleteTree(object):
     """
 
     def __init__(self, xml_tree_list, main_xml_tree):
-        self.list_clusters_nodes = []  # 同版本多个xml文件节点聚类的集合 并且只存储列表节点下的聚类 每个节点就代表了一个聚类
+        self.list_cluster_nodes = []  # 同版本多个xml文件节点聚类的集合 并且只存储列表节点下的聚类 每个节点就代表了一个聚类
         self.list_cluster_id = 1  # 重新对这些聚类进行编号
         self.added_single_nodes = []  # 从其它xml文件中获取的single_nodes 使用xpath来进行补充
 
@@ -32,7 +32,7 @@ class CompleteTree(object):
             idx_list = self.main_xml_tree.clusters[cluster_id]
 
             # 只用一个节点表示一个聚类 (比较不合理 之后需更改)
-            self.list_clusters_nodes.append(main_nodes[idx_list[0]])
+            self.list_cluster_nodes.append(main_nodes[idx_list[0]])
 
         # print(len(self.list_clusters_nodes))
 
@@ -43,12 +43,12 @@ class CompleteTree(object):
                     idx_list = xml_tree.clusters[cluster_id]
                     central_node = xml_tree.nodes[idx_list[0]]
                     flag = False
-                    for node in self.list_clusters_nodes:
+                    for node in self.list_cluster_nodes:
                         sim = get_nodes_similar_score(central_node, node)
                         if sim >= 0.8:
                             flag = True
                     if not flag:
-                        self.list_clusters_nodes.append(central_node)
+                        self.list_cluster_nodes.append(central_node)
 
         # print(len(self.list_clusters_nodes))
 
@@ -68,9 +68,6 @@ class CompleteTree(object):
 
                     if not flag:
                         self.added_single_nodes.append(x_node)
-
-
-
 
 
 class XmlTree(object):
@@ -611,7 +608,17 @@ class XmlTree(object):
             for descendant in node.descendants:
                 if not descendant.children:
                     descendant.is_in_list = True
-                    self.list_clusters_id.add(descendant.cluster_id)
+                    if descendant.cluster_id != -1:
+                        self.list_clusters_id.add(descendant.cluster_id)
+                    else:
+                        # 有的列表内部节点无法聚类 那么对它们更新创建聚类 一个节点为一类
+                        descendant.cluster_id = self.clusters_id
+                        self.clusters[self.clusters_id] = []
+                        self.clusters[self.clusters_id].append(descendant.idx)
+                        self.clusters_id += 1
+                        self.list_clusters_id.add(descendant.cluster_id)
+
+
 
     def get_single_nodes(self):
         """
@@ -629,6 +636,7 @@ def get_nodes_similar_score(x_node, y_node):
     """
     在同层次聚类的过程中判断两个叶子节点是否相似
     需要更改这种计算方式
+    目前是只要id相同就能过 但是有时候id为空 这时候就无法聚类
     """
     x_node_id = x_node.attrib['resource-id']
     y_node_id = y_node.attrib['resource-id']
@@ -654,11 +662,11 @@ def get_nodes_similar_score(x_node, y_node):
         return 0
 
 
-def parse_xml(file_name, img_path):
+def parse_xml(xml_path, img_path):
     """
     解析xml文件 返回一个树和树中所有的节点
     """
-    tree = ET.ElementTree(file=file_name)
+    tree = ET.ElementTree(file=xml_path)
     xml_root = tree.getroot()
     root_node = TreeNode(xml_root, 0)
     xml_tree = XmlTree(root_node, img_path)

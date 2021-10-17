@@ -23,6 +23,37 @@ def is_xpath_matched(x_node, y_node):
     return False
 
 
+def is_bounds_matched(x_node, y_node, width):
+    """
+    判断两个节点的边界是否可以匹配上
+    先不搞花里胡哨的
+    """
+
+    if x_node.attrib['class'] != y_node.attrib['class'] or \
+            x_node.changed_type != y_node.changed_type:
+        return False
+
+    x1, y1, x2, y2 = x_node.parse_bounds()
+    x3, y3, x4, y4 = y_node.parse_bounds()
+
+    x_width = abs(x1 - x2)
+    x_height = abs(y1 - y2)
+
+    y_width = abs(x3 - x4)
+    y_height = abs(y3 - y4)
+
+    # 可优化的地方 分为text和image来分别进行判断 如果是text且会变化 那么忽略text
+    if x_node.attrib['class'] == 'text' and x_node.changed_attrs['text'] == 1:
+        scores = abs(x1 - x3) + abs(y1 - y3) + abs(x_height - y_height)
+    else:
+        scores = abs(x1 - x3) + abs(y1 - y3) + abs(x_width - y_width) + abs(x_height - y_height)
+
+    if scores > width / 8:
+        return False
+
+    return True
+
+
 def is_location_changed(x_node, y_node):
     """
     判断节点坐标是否变化

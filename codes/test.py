@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from PIL import Image, ImageDraw
 
 from codes.utility import *
-
+from result import CompareResult
 from xml_tree import parse_xml, CompleteTree
 
 
@@ -283,7 +283,7 @@ def merge_cluster_test():
     complete_tree.merge_cluster()
 
     tmp = []
-    for node in complete_tree.list_clusters_nodes:
+    for node in complete_tree.list_cluster_nodes:
         tmp.append(node.attrib['resource-id'])
 
     print(tmp)
@@ -324,6 +324,69 @@ def get_added_single_nodes_test():
 
         if complete_tree.added_single_nodes:
             print(i)
+            for node in complete_tree.added_single_nodes:
+                print(node.attrib)
+
+
+def clusters_nodes_compare_test():
+    """
+    对聚类节点的对比结果进行测试
+    """
+
+    path = '../compare_test_resources/d1'
+
+    xml1 = path + '/' + '1.xml'
+    xml2 = path + '/' + '2.xml'
+    png1 = path + '/' + '1.png'
+    png2 = path + '/' + '2.png'
+
+    xml3 = path + '/' + '3.xml'
+    xml4 = path + '/' + '4.xml'
+    png3 = path + '/' + '3.png'
+    png4 = path + '/' + '4.png'
+
+    # base_version解析数据
+    xml_tree1, nodes1 = parse_xml(xml1, png1)
+    xml_tree2, nodes2 = parse_xml(xml2, png2)
+
+    # 进行标记
+    get_nodes_tag(xml_tree1, xml_tree2)
+
+    xml_tree1.get_list_clusters()
+    xml_tree2.get_list_clusters()
+
+    xml_tree_list1 = [xml_tree1, xml_tree2]
+    complete_tree1 = CompleteTree(xml_tree_list1, xml_tree1)
+
+    complete_tree1.merge_cluster()
+    complete_tree1.get_added_single_nodes()
+
+    # updated_version解析数据
+    xml_tree3, nodes3 = parse_xml(xml3, png3)
+    xml_tree4, nodes4 = parse_xml(xml4, png4)
+
+    # 进行标记
+    get_nodes_tag(xml_tree3, xml_tree4)
+
+    xml_tree3.get_list_clusters()
+    xml_tree4.get_list_clusters()
+
+    xml_tree_list2 = [xml_tree3, xml_tree4]
+    complete_tree2 = CompleteTree(xml_tree_list2, xml_tree3)
+
+    complete_tree2.merge_cluster()
+    complete_tree2.get_added_single_nodes()
+
+    re = CompareResult(complete_tree1, complete_tree2, 0)
+    re.cluster_nodes_compare()
+
+    for node in re.removed_nodes:
+        print(node.attrib)
+
+    print('-----------------')
+
+    for node in re.added_nodes:
+        print(node.attrib)
 
 
 def compare_test():
@@ -373,4 +436,6 @@ def main():
 # main()
 # get_changed_image_test()
 # merge_cluster_test()
-get_added_single_nodes_test()
+# get_added_single_nodes_test()
+
+clusters_nodes_compare_test()

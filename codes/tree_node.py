@@ -48,6 +48,9 @@ class TreeNode(object):
 
         self.cluster_id = -1  # 所属聚类id
 
+        # 用于对比时判断该节点是否已有匹配对象
+        self.has_matched = False
+
     def parse_bounds(self):
         """
         解析bounds 获取节点坐标范围
