@@ -1,3 +1,4 @@
+import os
 from utility import *
 from xml_tree import get_nodes_similar_score
 
@@ -16,13 +17,12 @@ class CompareResult(object):
         self.updated_data_path = ''
         self.output_path = ''
 
-        # 待比较的screen路径
-        self.base_img_path = ''
-        self.updated_img_path = ''
-
         # 被移除的节点 变化的节点 新增的节点
         self.removed_nodes = []
+
+        self.matched_nodes = []
         self.changed_nodes = []
+
         self.added_nodes = []
 
         # 对比屏幕的宽度设置
@@ -32,12 +32,9 @@ class CompareResult(object):
         self.base_complete_tree = base_complete_tree
         self.updated_complete_tree = updated_complete_tree
 
-    def get_result(self):
-        """
-        获得最终对比的结果
-        """
-
-        self.cluster_nodes_compare()
+        # 待比较的screen路径
+        self.base_img_path = base_complete_tree.main_xml_tree.img_path
+        self.updated_img_path = updated_complete_tree.main_xml_tree.img_path
 
     def cluster_nodes_compare(self):
         """
@@ -155,7 +152,86 @@ class CompareResult(object):
         # 搜集匹配上的节点
         for node in base_single_nodes:
             if node.matched_node is not None:
+                self.matched_nodes.append(node)
+
+    def get_node_changes(self):
+        """
+        将匹配上的节点进行对比
+        识别变化
+        """
+
+        for node in self.matched_nodes:
+            has_changed = False
+            matched_node = node.matched_node
+
+            if node.dynamic_changed_attrs['class'] == 0 and \
+                    node.attrib['class'] != matched_node.attrib['class']:
+                node.real_changed_attrs['class'] = 1
+                has_changed = True
+
+            if node.dynamic_changed_attrs['resource-id'] == 0 and \
+                    node.attrib['resource-id'] != matched_node.attrib['resource-id']:
+                node.real_changed_attrs['resource-id'] = 1
+                has_changed = True
+
+            if node.dynamic_changed_attrs['text'] == 0 and \
+                    node.attrib['text'] != matched_node.attrib['text']:
+                node.real_changed_attrs['text'] = 1
+                has_changed = True
+
+            if node.dynamic_changed_attrs['content-desc'] == 0 and \
+                    node.attrib['content-desc'] != matched_node.attrib['content-desc']:
+                node.real_changed_attrs['text'] = 1
+                has_changed = True
+
+            if node.dynamic_changed_attrs['location'] == 0 and \
+                    is_location_changed(node, matched_node, False):
+                node.real_changed_attrs['location'] = 1
+                has_changed = True
+
+            if node.dynamic_changed_attrs['size'] == 0 and \
+                    is_size_changed(node, matched_node, False):
+                node.real_changed_attrs['size'] = 1
+                has_changed = True
+
+            if 'image' in node.attrib['class'].lower() and \
+                    node.dynamic_changed_attrs['color'] == 0 and \
+                    is_image_changed(node, matched_node, self.base_img_path, self.updated_img_path):
+                node.real_changed_attrs['color'] = 1
+                has_changed = True
+
+            if has_changed:
                 self.changed_nodes.append(node)
+                node.has_changed = True
+
+    def get_result(self):
+        """
+        获得最终对比的结果
+        """
+
+        self.cluster_nodes_compare()
+        self.single_nodes_compare()
+        self.get_node_changes()
+
+    def draw_changed_nodes(self):
+        """
+        在图中画出变化的节点
+        """
+
+        img = cv2.imread(self.base_img_path)
+
+        for node in self.changed_nodes:
+            if node.attrib['class'] != 'android.view.View' and \
+               'layout' not in node.attrib['class'].lower():
+                x1, y1, x2, y2 = node.parse_bounds()
+                img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        self.output_path = '../compare_test_resources/d14/result'
+
+        if not os.path.exists(self.output_path):
+            os.makedirs(self.output_path)
+
+        cv2.imwrite(self.output_path + '/' + 'changed_nodes.png', img)
 
 
 def is_cluster_existed(node, compared_nodes):

@@ -16,13 +16,24 @@ class TreeNode(object):
         self.children = []
         self.descendants = []  # 节点的子孙节点
 
-        self.changed_type = ChangedType.REMAIN
+        self.dynamic_changed_type = ChangedType.REMAIN
 
         # 判断是否存在于列表中
         self.is_in_list = False
 
         # 用map来存储属性的变化状态
-        self.changed_attrs = {
+        self.dynamic_changed_attrs = {
+            'class': 0,
+            'resource-id': 0,
+            'text': 0,
+            'content-desc': 0,
+            'location': 0,
+            'size': 0,
+            'color': 0
+        }
+
+        # 对比后发生变化的属性
+        self.real_changed_attrs = {
             'class': 0,
             'resource-id': 0,
             'text': 0,
@@ -50,6 +61,8 @@ class TreeNode(object):
 
         # 用于对比时判断该节点是否已有匹配对象
         self.matched_node = None
+        # 判断该节点跨版本对比时是否发生变化
+        self.has_changed = False
 
     def parse_bounds(self):
         """

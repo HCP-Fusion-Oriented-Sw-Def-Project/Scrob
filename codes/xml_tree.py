@@ -586,7 +586,7 @@ class XmlTree(object):
         attr_changed_nodes = []
 
         for node in self.leaf_nodes:
-            if node.changed_type != ChangedType.REMAIN:
+            if node.dynamic_changed_type != ChangedType.REMAIN:
                 attr_changed_nodes.append(node)
 
         # 用于存储列表节点根节点的列表

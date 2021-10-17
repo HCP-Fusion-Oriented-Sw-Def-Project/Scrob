@@ -30,7 +30,7 @@ def is_bounds_matched(x_node, y_node, width):
     """
 
     if x_node.attrib['class'] != y_node.attrib['class'] or \
-            x_node.changed_type != y_node.changed_type:
+            x_node.dynamic_changed_type != y_node.dynamic_changed_type:
         return False
 
     x1, y1, x2, y2 = x_node.parse_bounds()
@@ -43,7 +43,7 @@ def is_bounds_matched(x_node, y_node, width):
     y_height = abs(y3 - y4)
 
     # 可优化的地方 分为text和image来分别进行判断 如果是text且会变化 那么忽略text
-    if x_node.attrib['class'] == 'text' and x_node.changed_attrs['text'] == 1:
+    if x_node.attrib['class'] == 'text' and x_node.dynamic_changed_attrs['text'] == 1:
         scores = abs(x1 - x3) + abs(y1 - y3) + abs(x_height - y_height)
     else:
         scores = abs(x1 - x3) + abs(y1 - y3) + abs(x_width - y_width) + abs(x_height - y_height)
@@ -54,34 +54,43 @@ def is_bounds_matched(x_node, y_node, width):
     return True
 
 
-def is_location_changed(x_node, y_node):
+def is_location_changed(x_node, y_node, tag):
     """
     判断节点坐标是否变化
     """
-    if abs(x_node.x_loc - y_node.x_loc) + abs(x_node.y_loc - y_node.y_loc) > 0:
-        return True
 
-    return False
+    if tag:
+        if abs(x_node.x_loc - y_node.x_loc) + abs(x_node.y_loc - y_node.y_loc) > 0:
+            return True
+        return False
+    else:
+        if abs(x_node.x_loc - y_node.x_loc) + abs(x_node.y_loc - y_node.y_loc) > 10:
+            return True
+        return False
 
 
-def is_size_changed(x_node, y_node):
+def is_size_changed(x_node, y_node, tag):
     """
     判断节点的尺寸大小是否发生变化
     """
 
-    if x_node.width != y_node.width or x_node.height != y_node.height:
-        return True
+    if tag:
+        if x_node.width != y_node.width or x_node.height != y_node.height:
+            return True
+        return False
+    else:
+        if abs(x_node.width - y_node.width) > 5 or abs(x_node.height - y_node.height) > 5:
+            return True
+        return False
 
-    return False
 
-
-def is_image_changed(x_node, y_node, x_tree, y_tree):
+def is_image_changed(x_node, y_node, x_img_path, y_img_path):
     """
     判断图片颜色是否发生变化
     """
 
-    x_img = cv2.imread(x_tree.img_path)
-    y_img = cv2.imread(y_tree.img_path)
+    x_img = cv2.imread(x_img_path)
+    y_img = cv2.imread(y_img_path)
 
     # 获取截图
     x1, y1, x2, y2 = x_node.parse_bounds()
@@ -120,61 +129,61 @@ def get_nodes_attr_tag(x_node, y_node, x_tree, y_tree):
     对节点属性是否变化进行标记
     """
 
-    is_changed = False
+    has_changed = False
 
     if x_node.attrib['class'] != y_node.attrib['class']:
-        is_changed = True
-        if x_node.changed_attrs['class'] == 0:
-            x_node.changed_attrs['class'] = 1
-        if y_node.changed_attrs['class'] == 0:
-            y_node.changed_attrs['class'] = 1
+        has_changed = True
+        if x_node.dynamic_changed_attrs['class'] == 0:
+            x_node.dynamic_changed_attrs['class'] = 1
+        if y_node.dynamic_changed_attrs['class'] == 0:
+            y_node.dynamic_changed_attrs['class'] = 1
 
     if x_node.attrib['resource-id'] != y_node.attrib['resource-id']:
-        is_changed = True
-        if x_node.changed_attrs['resource-id'] == 0:
-            x_node.changed_attrs['resource-id'] = 1
-        if y_node.changed_attrs['resource-id'] == 0:
-            y_node.changed_attrs['resource-id'] = 1
+        has_changed = True
+        if x_node.dynamic_changed_attrs['resource-id'] == 0:
+            x_node.dynamic_changed_attrs['resource-id'] = 1
+        if y_node.dynamic_changed_attrs['resource-id'] == 0:
+            y_node.dynamic_changed_attrs['resource-id'] = 1
 
     if x_node.attrib['text'] != y_node.attrib['text']:
-        is_changed = True
-        if x_node.changed_attrs['text'] == 0:
-            x_node.changed_attrs['text'] = 1
-        if y_node.changed_attrs['text'] == 0:
-            y_node.changed_attrs['text'] = 1
+        has_changed = True
+        if x_node.dynamic_changed_attrs['text'] == 0:
+            x_node.dynamic_changed_attrs['text'] = 1
+        if y_node.dynamic_changed_attrs['text'] == 0:
+            y_node.dynamic_changed_attrs['text'] = 1
 
     if x_node.attrib['content-desc'] != y_node.attrib['content-desc']:
-        is_changed = True
-        if x_node.changed_attrs['content-desc'] == 0:
-            x_node.changed_attrs['content-desc'] = 1
-        if y_node.changed_attrs['content-desc'] == 0:
-            y_node.changed_attrs['content-desc'] = 1
+        has_changed = True
+        if x_node.dynamic_changed_attrs['content-desc'] == 0:
+            x_node.dynamic_changed_attrs['content-desc'] = 1
+        if y_node.dynamic_changed_attrs['content-desc'] == 0:
+            y_node.dynamic_changed_attrs['content-desc'] = 1
 
-    if is_location_changed(x_node, y_node):
-        is_changed = True
-        if x_node.changed_attrs['location'] == 0:
-            x_node.changed_attrs['location'] = 1
-        if y_node.changed_attrs['location'] == 0:
-            y_node.changed_attrs['location'] = 1
+    if is_location_changed(x_node, y_node, True):
+        has_changed = True
+        if x_node.dynamic_changed_attrs['location'] == 0:
+            x_node.dynamic_changed_attrs['location'] = 1
+        if y_node.dynamic_changed_attrs['location'] == 0:
+            y_node.dynamic_changed_attrs['location'] = 1
 
-    if is_size_changed(x_node, y_node):
-        is_changed = True
-        if x_node.changed_attrs['location'] == 0:
-            x_node.changed_attrs['location'] = 1
-        if y_node.changed_attrs['location'] == 0:
-            y_node.changed_attrs['location'] = 1
+    if is_size_changed(x_node, y_node, True):
+        has_changed = True
+        if x_node.dynamic_changed_attrs['location'] == 0:
+            x_node.dynamic_changed_attrs['location'] = 1
+        if y_node.dynamic_changed_attrs['location'] == 0:
+            y_node.dynamic_changed_attrs['location'] = 1
 
     if 'image' in x_node.attrib['class'].lower():
-        if is_image_changed(x_node, y_node, x_tree, y_tree):
-            is_changed = True
-            if x_node.changed_attrs['color'] == 0:
-                x_node.changed_attrs['color'] = 1
-            if y_node.changed_attrs['color'] == 0:
-                y_node.changed_attrs['color'] = 1
+        if is_image_changed(x_node, y_node, x_tree.img_path, y_tree.img_path):
+            has_changed = True
+            if x_node.dynamic_changed_attrs['color'] == 0:
+                x_node.dynamic_changed_attrs['color'] = 1
+            if y_node.dynamic_changed_attrs['color'] == 0:
+                y_node.dynamic_changed_attrs['color'] = 1
 
-    if is_changed:
-        x_node.changed_type = ChangedType.ATTR
-        y_node.changed_type = ChangedType.ATTR
+    if has_changed:
+        x_node.dynamic_changed_type = ChangedType.ATTR
+        y_node.dynamic_changed_type = ChangedType.ATTR
 
 
 def get_nodes_tag(x_tree, y_tree):
@@ -190,11 +199,11 @@ def get_nodes_tag(x_tree, y_tree):
         for y_node in y_nodes:
             if is_xpath_matched(x_node, y_node):
                 has_matched = True
-                if x_node.changed_type == ChangedType.REMAIN or y_node.changed_type == ChangedType.REMAIN:
+                if x_node.dynamic_changed_type == ChangedType.REMAIN or y_node.dynamic_changed_type == ChangedType.REMAIN:
                     get_nodes_attr_tag(x_node, y_node, x_tree, y_tree)
 
         if not has_matched:
-            x_node.changed_type = ChangedType.STATE
+            x_node.dynamic_changed_type = ChangedType.STATE
 
     for y_node in y_nodes:
         has_matched = False
@@ -203,7 +212,7 @@ def get_nodes_tag(x_tree, y_tree):
                 has_matched = True
 
         if not has_matched:
-            y_node.changed_type = ChangedType.STATE
+            y_node.dynamic_changed_type = ChangedType.STATE
 
 
 def get_nodes_common_ans(x_node, y_node):

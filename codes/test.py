@@ -184,7 +184,7 @@ def get_list_node_test():
     # 找到属性变化的节点
     attr_changed_nodes = []
     for node in nodes1:
-        if node.children == [] and node.changed_type != ChangedType.REMAIN:
+        if node.children == [] and node.dynamic_changed_type != ChangedType.REMAIN:
             attr_changed_nodes.append(node)
 
     # 判断其是否属于某个聚类当中
@@ -250,7 +250,7 @@ def get_changed_image_test():
     b = None
 
     for node in nodes1:
-        if 'image' in node.attrib['class'].lower() and node.changed_attrs['color'] == 1:
+        if 'image' in node.attrib['class'].lower() and node.dynamic_changed_attrs['color'] == 1:
             x1, y1, x2, y2 = node.parse_bounds()
             img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
@@ -459,6 +459,72 @@ def compare_test():
     查缺补漏 补充函数
     """
 
+    path = '../compare_test_resources/d14'
+
+    xml1 = path + '/' + '1.xml'
+    xml2 = path + '/' + '2.xml'
+    png1 = path + '/' + '1.png'
+    png2 = path + '/' + '2.png'
+
+    xml3 = path + '/' + '3.xml'
+    xml4 = path + '/' + '4.xml'
+    png3 = path + '/' + '3.png'
+    png4 = path + '/' + '4.png'
+
+    # base_version解析数据
+    xml_tree1, nodes1 = parse_xml(xml1, png1)
+    xml_tree2, nodes2 = parse_xml(xml2, png2)
+
+    # 进行标记
+    get_nodes_tag(xml_tree1, xml_tree2)
+
+    xml_tree1.get_list_clusters()
+    xml_tree2.get_list_clusters()
+
+    xml_tree_list1 = [xml_tree1, xml_tree2]
+    complete_tree1 = CompleteTree(xml_tree_list1, xml_tree1)
+
+    complete_tree1.merge_cluster()
+    complete_tree1.get_added_single_nodes()
+
+    # updated_version解析数据
+    xml_tree3, nodes3 = parse_xml(xml3, png3)
+    xml_tree4, nodes4 = parse_xml(xml4, png4)
+
+    # 进行标记
+    get_nodes_tag(xml_tree3, xml_tree4)
+
+    xml_tree3.get_list_clusters()
+    xml_tree4.get_list_clusters()
+
+    xml_tree_list2 = [xml_tree3, xml_tree4]
+    complete_tree2 = CompleteTree(xml_tree_list2, xml_tree3)
+
+    complete_tree2.merge_cluster()
+    complete_tree2.get_added_single_nodes()
+
+    re = CompareResult(complete_tree1, complete_tree2, 0)
+
+    re.get_result()
+    re.draw_changed_nodes()
+
+    # for node in re.removed_nodes:
+    #     print(node.attrib)
+    #
+    # print('-----------------')
+    #
+    # for node in re.added_nodes:
+    #     print(node.attrib)
+    #
+    # print('-----------------')
+    #
+    # for node in re.changed_nodes:
+    #     print(node.attrib)
+
+    for node in re.changed_nodes:
+        print(node.attrib)
+        print(node.real_changed_attrs)
+        print('------------------')
 
 def main():
     num_str = 'd5'
@@ -502,4 +568,6 @@ def main():
 # merge_cluster_test()
 # get_added_single_nodes_test()
 
-single_nodes_compare_test()
+# single_nodes_compare_test()
+
+compare_test()
