@@ -140,18 +140,18 @@ def get_list_node_test():
     验证寻找列表节点的根节点的效果
     """
 
-    res = 'd15'
+    res = 'd13'
 
     xml1 = '../tag_resources/' + res + '/1.xml'
     xml2 = '../tag_resources/' + res + '/2.xml'
     png1 = '../tag_resources/' + res + '/1.png'
     png2 = '../tag_resources/' + res + '/2.png'
 
-    xml_tree1, nodes1 = parse_xml(xml1)
-    xml_tree2, nodes2 = parse_xml(xml2)
+    xml_tree1, nodes1 = parse_xml(xml1, png1)
+    xml_tree2, nodes2 = parse_xml(xml2, png2)
 
     # 进行节点标记
-    get_nodes_tag(nodes1, nodes2)
+    get_nodes_tag(xml_tree1, xml_tree2)
 
     nodes_list = []
     # # 遍历所有聚类 去寻找属性值变化了的节点 然后 去找这个聚类中节点的公共祖先节点即可 (事实证明 这种方法不行)
@@ -202,7 +202,7 @@ def get_list_node_test():
                 nodes_list.append(common_ans)
 
     img = cv2.imread(png1)
-    dir = '../get_list_nodes_results/' + res
+    dir = '../get_list_nodes_results/' + res + '.2'
 
     if not os.path.exists(dir):
         os.makedirs(dir)
@@ -415,6 +415,8 @@ def single_nodes_compare_test():
 
     xml_tree1.get_list_clusters()
     xml_tree2.get_list_clusters()
+    xml_tree1.get_single_nodes()
+    xml_tree2.get_single_nodes()
 
     xml_tree_list1 = [xml_tree1, xml_tree2]
     complete_tree1 = CompleteTree(xml_tree_list1, xml_tree1)
@@ -431,6 +433,8 @@ def single_nodes_compare_test():
 
     xml_tree3.get_list_clusters()
     xml_tree4.get_list_clusters()
+    xml_tree3.get_single_nodes()
+    xml_tree4.get_single_nodes()
 
     xml_tree_list2 = [xml_tree3, xml_tree4]
     complete_tree2 = CompleteTree(xml_tree_list2, xml_tree3)
@@ -459,7 +463,7 @@ def compare_test():
     查缺补漏 补充函数
     """
 
-    path = '../compare_test_resources/d5'
+    path = '../compare_test_resources/d16'
 
     xml1 = path + '/' + '1.xml'
     xml2 = path + '/' + '2.xml'
@@ -480,11 +484,14 @@ def compare_test():
 
     xml_tree1.get_list_clusters()
     xml_tree2.get_list_clusters()
+    xml_tree1.get_single_nodes()
+    xml_tree2.get_single_nodes()
 
     xml_tree_list1 = [xml_tree1, xml_tree2]
     complete_tree1 = CompleteTree(xml_tree_list1, xml_tree1)
 
     complete_tree1.merge_cluster()
+
     complete_tree1.get_added_single_nodes()
 
     # updated_version解析数据
@@ -496,6 +503,8 @@ def compare_test():
 
     xml_tree3.get_list_clusters()
     xml_tree4.get_list_clusters()
+    xml_tree3.get_single_nodes()
+    xml_tree4.get_single_nodes()
 
     xml_tree_list2 = [xml_tree3, xml_tree4]
     complete_tree2 = CompleteTree(xml_tree_list2, xml_tree3)

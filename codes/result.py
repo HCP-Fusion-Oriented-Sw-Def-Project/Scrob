@@ -113,7 +113,7 @@ class CompareResult(object):
                     return True
 
             # 使用bounds进行匹配
-            if len(node.xpath) == 1 or 'image' in node.attrib['class'].lower(): # 说明只有绝对路径构造的xpath 或者只是图片
+            if len(node.xpath) == 1 or 'image' in node.attrib['class'].lower():  # 说明只有绝对路径构造的xpath 或者只是图片
                 for tmp_node in compare_nodes:
                     if tmp_node.matched_node is None and is_bounds_matched(node, tmp_node, self.width):
                         return True
@@ -224,6 +224,8 @@ class CompareResult(object):
         self.draw_changed_nodes()
         self.draw_added_nodes()
 
+        self.print_result()
+
     def draw_changed_nodes(self):
         """
         在图中画出变化的节点并打印
@@ -241,12 +243,6 @@ class CompareResult(object):
             os.makedirs(self.output_path)
 
         cv2.imwrite(self.output_path + '/' + 'changed_nodes.png', img)
-
-        print('changed_nodes:')
-        for node in self.changed_nodes:
-            print(node.attrib)
-            print('----')
-
 
     def draw_removed_nodes(self):
         """
@@ -266,11 +262,6 @@ class CompareResult(object):
 
         cv2.imwrite(self.output_path + '/' + 'removed_nodes.png', img)
 
-        print('removed_nodes:')
-        for node in self.removed_nodes:
-            print(node.attrib)
-            print('----')
-
     def draw_added_nodes(self):
         """
         在图中画出移除的节点
@@ -288,6 +279,23 @@ class CompareResult(object):
             os.makedirs(self.output_path)
 
         cv2.imwrite(self.output_path + '/' + 'added_nodes.png', img)
+
+    def print_result(self):
+        """
+        打印结果
+        """
+
+        print('removed_nodes:')
+        for node in self.removed_nodes:
+            print(node.attrib)
+            print('----')
+
+        print('changed_nodes:')
+        for node in self.changed_nodes:
+            print(node.attrib)
+            print('****')
+            print(node.real_changed_attrs)
+            print('----')
 
         print('added_nodes:')
         for node in self.added_nodes:

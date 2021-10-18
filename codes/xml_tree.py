@@ -59,10 +59,10 @@ class CompleteTree(object):
 
         for xml_tree in self.xml_tree_list:
             if xml_tree != self.main_xml_tree:
-                single_nodes = xml_tree.get_single_nodes()
+                single_nodes = xml_tree.single_nodes
                 for x_node in single_nodes:
                     flag = False
-                    for y_node in self.main_xml_tree.get_single_nodes():
+                    for y_node in self.main_xml_tree.single_nodes:
                         if x_node.full_xpath == y_node.full_xpath:
                             flag = True
 
@@ -586,11 +586,11 @@ class XmlTree(object):
         attr_changed_nodes = []
 
         for node in self.leaf_nodes:
-            if node.dynamic_changed_type != ChangedType.REMAIN:
+            if node.dynamic_changed_type == ChangedType.ATTR:
                 attr_changed_nodes.append(node)
 
         # 用于存储列表节点根节点的列表
-        nodes_list = []
+        root_list_nodes = []
 
         for node in attr_changed_nodes:
             if node.cluster_id != -1 and node.cluster_id not in self.attr_changed_clusters:
@@ -600,11 +600,24 @@ class XmlTree(object):
                 node_j = self.nodes[id_list[1]]
                 common_ans = get_nodes_common_ans(node_i, node_j)
 
-                if common_ans not in nodes_list and common_ans.full_xpath != '//':
-                    nodes_list.append(common_ans)
+                if common_ans not in root_list_nodes and common_ans.full_xpath != '//':
+                    root_list_nodes.append(common_ans)
+
+        # changed_root_list_nodes = []
+
+        # # 找到列表根节点下的每一个包含变化子孙节点的列表节点 一般情况下 倘若能找到正常的列表节点根节点 则这一步没必要
+        # 不行 这样有的没变化的列表就找不出来
+        # for node in root_list_nodes:
+        #     flag = False
+        #     for child in node.children:
+        #         if has_desc_in_changed_cls(child, self):
+        #             flag = True
+        #
+        #     if flag:
+        #         changed_root_list_nodes.append(child)
 
         # 遍历这些列表根节点的子孙节点 将它们的子孙节点的聚类找出
-        for node in nodes_list:
+        for node in root_list_nodes:
             for descendant in node.descendants:
                 if not descendant.children:
                     descendant.is_in_list = True
@@ -623,10 +636,9 @@ class XmlTree(object):
         获取非列表下的叶子节点
         """
 
-        if not self.single_nodes:
-            for node in self.leaf_nodes:
-                if node.is_in_list is False:
-                    self.single_nodes.append(node)
+        for node in self.leaf_nodes:
+            if not node.is_in_list:
+                self.single_nodes.append(node)
 
         return self.single_nodes
 
@@ -641,7 +653,7 @@ def get_nodes_similar_score(x_node, y_node):
     y_node_id = y_node.attrib['resource-id']
 
     flag = False
-    id_sim = 0
+    # id_sim = 0
 
     if len(x_node_id) == 0 or len(y_node_id) == 0:
         flag = True
@@ -655,10 +667,26 @@ def get_nodes_similar_score(x_node, y_node):
     if delete_num_in_str(x_node_id) == delete_num_in_str(y_node_id) and not flag:
         return 1
 
-    if x_node.width == y_node.width or x_node.height == y_node.height:
-        return (0.8 + id_sim) / 2
-    else:
-        return 0
+    # # 如果 横/纵 坐标  以及 长/宽 有两者占 则表示是同类 即 横坐标和长度 纵坐标和宽度 一共4种组合
+    # # 这种方法只对一个页面上的没有id的同类元素有效
+    # score = 0
+    # x1, y1, x2, y2 = x_node.parse_bounds()
+    # x3, y3, x4, y4 = y_node.parse_bounds()
+    #
+    # if x1 == x3 or y1 == y3:
+    #     score += 0.4
+    #
+    # if x_node.width == y_node.width or x_node.height == y_node.height:
+    #     score += 0.4
+    #
+    # return score
+
+    return 0
+
+    # if x_node.width == y_node.width or x_node.height == y_node.height:
+    #     return (0.8 + id_sim) / 2
+    # else:
+    #     return 0
 
 
 def parse_xml(xml_path, img_path):
