@@ -503,28 +503,10 @@ def compare_test():
     complete_tree2.merge_cluster()
     complete_tree2.get_added_single_nodes()
 
-    re = CompareResult(complete_tree1, complete_tree2, 0)
+    re = CompareResult(complete_tree1, complete_tree2, 540, path + '/result')
 
     re.get_result()
-    re.draw_changed_nodes()
 
-    # for node in re.removed_nodes:
-    #     print(node.attrib)
-    #
-    # print('-----------------')
-    #
-    # for node in re.added_nodes:
-    #     print(node.attrib)
-    #
-    # print('-----------------')
-    #
-    # for node in re.changed_nodes:
-    #     print(node.attrib)
-
-    for node in re.changed_nodes:
-        print(node.attrib)
-        print(node.real_changed_attrs)
-        print('------------------')
 
 def main():
     num_str = 'd5'

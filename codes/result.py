@@ -11,11 +11,12 @@ class CompareResult(object):
     以及变化的节点
     """
 
-    def __init__(self, base_complete_tree, updated_complete_tree, width):
+    def __init__(self, base_complete_tree, updated_complete_tree, width, output_path):
         # 基础版本数据 更新版本数据 以及输出 路径
         self.base_data_path = ''
         self.updated_data_path = ''
-        self.output_path = ''
+
+        self.output_path = output_path
 
         # 被移除的节点 变化的节点 新增的节点
         self.removed_nodes = []
@@ -96,13 +97,14 @@ class CompareResult(object):
                     return True
 
             # 使用bounds进行匹配
-            for tmp_node in compare_nodes:
-                if tmp_node.matched_node is None and is_bounds_matched(node, tmp_node, self.width):
-                    node.matched_node = tmp_node
-                    tmp_node.matched_node = node
-                    return True
+            if len(node.xpath) == 1:  # 说明只有绝对路径
+                for tmp_node in compare_nodes:
+                    if tmp_node.matched_node is None and is_bounds_matched(node, tmp_node, self.width):
+                        node.matched_node = tmp_node
+                        tmp_node.matched_node = node
+                        return True
 
-            return False
+                return False
 
         else:
             # 使用xpath进行匹配
@@ -111,11 +113,12 @@ class CompareResult(object):
                     return True
 
             # 使用bounds进行匹配
-            for tmp_node in compare_nodes:
-                if tmp_node.matched_node is None and is_bounds_matched(node, tmp_node, self.width):
-                    return True
+            if len(node.xpath) == 1:  # 说明只有绝对路径构造的xpath
+                for tmp_node in compare_nodes:
+                    if tmp_node.matched_node is None and is_bounds_matched(node, tmp_node, self.width):
+                        return True
 
-            return False
+                return False
 
     def single_nodes_compare(self):
         """
@@ -144,10 +147,14 @@ class CompareResult(object):
         for node in unmatched_base_single_nodes:
             if not self.get_matched_single_nodes(node, updated_added_single_nodes, True):
                 self.removed_nodes.append(node)
+        else:
+            self.removed_nodes.append(node)
 
         for node in unmatched_updated_single_nodes:
             if not self.get_matched_single_nodes(node, base_added_single_nodes, True):
                 self.added_nodes.append(node)
+        else:
+            self.added_nodes.append(node)
 
         # 搜集匹配上的节点
         for node in base_single_nodes:
@@ -213,25 +220,79 @@ class CompareResult(object):
         self.single_nodes_compare()
         self.get_node_changes()
 
+        self.draw_removed_nodes()
+        self.draw_changed_nodes()
+        self.draw_added_nodes()
+
     def draw_changed_nodes(self):
         """
-        在图中画出变化的节点
+        在图中画出变化的节点并打印
         """
 
         img = cv2.imread(self.base_img_path)
 
         for node in self.changed_nodes:
             if node.attrib['class'] != 'android.view.View' and \
-               'layout' not in node.attrib['class'].lower():
+                    'layout' not in node.attrib['class'].lower():
                 x1, y1, x2, y2 = node.parse_bounds()
                 img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-
-        self.output_path = '../compare_test_resources/d14/result'
 
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
 
         cv2.imwrite(self.output_path + '/' + 'changed_nodes.png', img)
+
+        print('changed_nodes:')
+        for node in self.changed_nodes:
+            print(node.attrib)
+            print('----')
+
+
+    def draw_removed_nodes(self):
+        """
+        在图中画出移除的节点
+        """
+
+        img = cv2.imread(self.base_img_path)
+
+        for node in self.removed_nodes:
+            if node.attrib['class'] != 'android.view.View' and \
+                    'layout' not in node.attrib['class'].lower():
+                x1, y1, x2, y2 = node.parse_bounds()
+                img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        if not os.path.exists(self.output_path):
+            os.makedirs(self.output_path)
+
+        cv2.imwrite(self.output_path + '/' + 'removed_nodes.png', img)
+
+        print('removed_nodes:')
+        for node in self.removed_nodes:
+            print(node.attrib)
+            print('----')
+
+    def draw_added_nodes(self):
+        """
+        在图中画出移除的节点
+        """
+
+        img = cv2.imread(self.updated_img_path)
+
+        for node in self.added_nodes:
+            if node.attrib['class'] != 'android.view.View' and \
+                    'layout' not in node.attrib['class'].lower():
+                x1, y1, x2, y2 = node.parse_bounds()
+                img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        if not os.path.exists(self.output_path):
+            os.makedirs(self.output_path)
+
+        cv2.imwrite(self.output_path + '/' + 'added_nodes.png', img)
+
+        print('added_nodes:')
+        for node in self.added_nodes:
+            print(node.attrib)
+            print('----')
 
 
 def is_cluster_existed(node, compared_nodes):
