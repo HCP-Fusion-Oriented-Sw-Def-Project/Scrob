@@ -97,7 +97,7 @@ class CompareResult(object):
                     return True
 
             # 使用bounds进行匹配
-            if len(node.xpath) == 1:  # 说明只有绝对路径
+            if len(node.xpath) == 1 or 'image' in node.attrib['class'].lower():  # 说明只有绝对路径构造的xpath 或者只是图片
                 for tmp_node in compare_nodes:
                     if tmp_node.matched_node is None and is_bounds_matched(node, tmp_node, self.width):
                         node.matched_node = tmp_node
@@ -113,7 +113,7 @@ class CompareResult(object):
                     return True
 
             # 使用bounds进行匹配
-            if len(node.xpath) == 1:  # 说明只有绝对路径构造的xpath
+            if len(node.xpath) == 1 or 'image' in node.attrib['class'].lower(): # 说明只有绝对路径构造的xpath 或者只是图片
                 for tmp_node in compare_nodes:
                     if tmp_node.matched_node is None and is_bounds_matched(node, tmp_node, self.width):
                         return True
@@ -147,14 +147,14 @@ class CompareResult(object):
         for node in unmatched_base_single_nodes:
             if not self.get_matched_single_nodes(node, updated_added_single_nodes, True):
                 self.removed_nodes.append(node)
-        else:
-            self.removed_nodes.append(node)
+            else:
+                self.removed_nodes.append(node)
 
         for node in unmatched_updated_single_nodes:
             if not self.get_matched_single_nodes(node, base_added_single_nodes, True):
                 self.added_nodes.append(node)
-        else:
-            self.added_nodes.append(node)
+            else:
+                self.added_nodes.append(node)
 
         # 搜集匹配上的节点
         for node in base_single_nodes:

@@ -459,7 +459,7 @@ def compare_test():
     查缺补漏 补充函数
     """
 
-    path = '../compare_test_resources/d14'
+    path = '../compare_test_resources/d5'
 
     xml1 = path + '/' + '1.xml'
     xml2 = path + '/' + '2.xml'
