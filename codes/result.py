@@ -285,22 +285,22 @@ class CompareResult(object):
         打印结果
         """
 
-        print('removed_nodes:')
-        for node in self.removed_nodes:
-            print(node.attrib)
-            print('----')
+        # print('removed_nodes:')
+        # for node in self.removed_nodes:
+        #     print(node.attrib)
+        #     print('----')
 
-        print('changed_nodes:')
-        for node in self.changed_nodes:
-            print(node.attrib)
-            print('****')
-            print(node.real_changed_attrs)
-            print('----')
+        # print('changed_nodes:')
+        # for node in self.changed_nodes:
+        #     print(node.attrib)
+        #     print('****')
+        #     print(node.real_changed_attrs)
+        #     print('----')
 
-        print('added_nodes:')
-        for node in self.added_nodes:
-            print(node.attrib)
-            print('----')
+        # print('added_nodes:')
+        # for node in self.added_nodes:
+        #     print(node.attrib)
+        #     print('----')
 
 
 def is_cluster_existed(node, compared_nodes):

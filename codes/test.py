@@ -142,10 +142,10 @@ def get_list_node_test():
 
     res = 'd13'
 
-    xml1 = '../tag_resources/' + res + '/1.xml'
-    xml2 = '../tag_resources/' + res + '/2.xml'
-    png1 = '../tag_resources/' + res + '/1.png'
-    png2 = '../tag_resources/' + res + '/2.png'
+    xml1 = '../compare_test_resources/' + res + '/3.xml'
+    xml2 = '../compare_test_resources/' + res + '/4.xml'
+    png1 = '../compare_test_resources/' + res + '/3.png'
+    png2 = '../compare_test_resources/' + res + '/4.png'
 
     xml_tree1, nodes1 = parse_xml(xml1, png1)
     xml_tree2, nodes2 = parse_xml(xml2, png2)
@@ -153,53 +153,47 @@ def get_list_node_test():
     # 进行节点标记
     get_nodes_tag(xml_tree1, xml_tree2)
 
-    nodes_list = []
-    # # 遍历所有聚类 去寻找属性值变化了的节点 然后 去找这个聚类中节点的公共祖先节点即可 (事实证明 这种方法不行)
-    # for key in xml_tree1.clusters:
-    #     idx_list = xml_tree1.clusters[key]
-    #     if nodes1[idx_list[0]].changed_type != ChangedType.REMAIN:
-    #         for i in range(len(idx_list) - 1):
-    #             for j in range(i + 1, len(idx_list)):
-    #                 node_i = nodes1[i]
-    #                 node_j = nodes1[j]
-    #                 if node_i.parent != node_j.parent:
-    #                     common_ans = get_nodes_common_ans(node_i, node_j)
-    #                     if common_ans not in nodes_list:
-    #                         nodes_list.append(common_ans)
-    #
-    # img = cv2.imread(png1)
-    # dir = '../get_list_nodes_results/'
-    # count = 0
-    # for node in nodes_list:
-    #     n_img = img.copy()
-    #     for child in node.children:
-    #         x1, y1, x2, y2 = child.parse_bounds()
-    #         n_img = cv2.rectangle(n_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-    #
-    #     cv2.imwrite(dir + '/' + str(count) + '.png', n_img)
-    #     count += 1
-
-    # 方法2: 先找属性变化的节点 然后再判断其是否存在于某个聚类当中 然后再去找它的祖先节点
-
+    # 方法: 先找属性变化的节点 然后再判断其是否存在于某个聚类当中 然后再去找它的祖先节点
     # 找到属性变化的节点
-    attr_changed_nodes = []
+    changed_nodes = []
     for node in nodes1:
         if node.children == [] and node.dynamic_changed_type != ChangedType.REMAIN:
-            attr_changed_nodes.append(node)
+            changed_nodes.append(node)
 
     # 判断其是否属于某个聚类当中
-    nodes_list = []
-    for node in attr_changed_nodes:
+    list_parent_nodes = []
+    for node in changed_nodes:
         # print(node.attrib)
         if node.cluster_id != -1 and node.cluster_id not in xml_tree1.attr_changed_clusters:  # 说明存在于某个聚类当中
             # print(node.attrib)
             idx_list = xml_tree1.clusters[node.cluster_id]
             xml_tree1.attr_changed_clusters.add(node.cluster_id)
+            # 取出聚类中的两个节点
             node_i = nodes1[idx_list[0]]
             node_j = nodes1[idx_list[1]]
-            common_ans = get_nodes_common_ans(node_i, node_j)
-            if common_ans not in nodes_list and common_ans.full_xpath != '//':
-                nodes_list.append(common_ans)
+
+            # 如果两个节点不是兄弟节点
+            if node_i.parent != node_j.parent:
+                # 获得公共祖先节点
+                common_ans = get_nodes_common_ans(node_i, node_j)
+                if common_ans not in list_parent_nodes and common_ans.full_xpath != '//':
+                    list_parent_nodes.append(common_ans)
+
+    # 给list_parent_nodes去重
+    tmp_list_parent_nodes = []
+    for i in range(len(list_parent_nodes)):
+        flag = True
+        for j in range(i + 1, len(list_parent_nodes)):
+            x_node = list_parent_nodes[i]
+            y_node = list_parent_nodes[j]
+            # layer数越大 说明在树中的层次越低
+            if has_common_desc(x_node, y_node) and x_node.layer > y_node.layer:
+                flag = False
+
+        if flag and x_node not in tmp_list_parent_nodes:
+            tmp_list_parent_nodes.append(x_node)
+
+    list_parent_nodes = tmp_list_parent_nodes
 
     img = cv2.imread(png1)
     dir = '../get_list_nodes_results/' + res + '.2'
@@ -208,7 +202,7 @@ def get_list_node_test():
         os.makedirs(dir)
 
     count = 0
-    for node in nodes_list:
+    for node in list_parent_nodes:
         flag = False
         n_img = img.copy()
         for child in node.children:
@@ -220,6 +214,15 @@ def get_list_node_test():
         if flag:
             cv2.imwrite(dir + '/' + str(count) + '.png', n_img)
             count += 1
+
+    # 画出nodes_list即公共祖先节点
+    print(len(list_parent_nodes))
+    for node in list_parent_nodes:
+        print(node.attrib)
+        x1, y1, x2, y2 = node.parse_bounds()
+        n_img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+    cv2.imwrite(dir + '/' + 'list_parent.png', img)
 
 
 def get_changed_image_test():
@@ -463,7 +466,7 @@ def compare_test():
     查缺补漏 补充函数
     """
 
-    path = '../compare_test_resources/d16'
+    path = '../compare_test_resources/d13'
 
     xml1 = path + '/' + '1.xml'
     xml2 = path + '/' + '2.xml'
@@ -517,6 +520,40 @@ def compare_test():
     re.get_result()
 
 
+def new_cluster_strategy_test():
+    """
+    使用新的聚类策略对页面进行测试
+    即不仅仅只用id,还加上长宽
+    """
+
+    path = '../compare_test_resources/d13'
+    xml = path + '/' + '3.xml'
+    png = path + '/' + '3.png'
+    xml_tree, nodes = parse_xml(xml, png)
+
+    dir = '../new_cluster_stategy_test/'
+
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+    img = cv2.imread(png)
+
+    for key in xml_tree.clusters:
+        idx_list = xml_tree.clusters[key]
+        n_img = img.copy()
+        is_leaf = True
+        for idx in idx_list:
+            node = xml_tree.nodes[idx]
+            if not node.children:
+                x1, y1, x2, y2 = node.parse_bounds()
+                n_img = cv2.rectangle(n_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+            else:
+                is_leaf = False
+
+        if is_leaf:
+            cv2.imwrite(dir + '/' + str(key) + '.png', n_img)
+
+
 def main():
     num_str = 'd5'
     xml1 = '../compare_resources/' + num_str + '/' + '1.xml'
@@ -553,7 +590,7 @@ def main():
     # print(nodes[0].full_xpath)
 
 
-# get_list_node_test()
+get_list_node_test()
 # main()
 # get_changed_image_test()
 # merge_cluster_test()
@@ -561,4 +598,6 @@ def main():
 
 # single_nodes_compare_test()
 
-compare_test()
+# compare_test()
+
+# new_cluster_strategy_test()

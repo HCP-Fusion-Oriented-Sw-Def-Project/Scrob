@@ -258,3 +258,17 @@ def has_desc_in_changed_cls(node, xml_tree):
                     return True
 
     return False
+
+
+def has_common_desc(x_node, y_node):
+    """
+    判断两个非叶子节点是否有公共的子孙节点
+    """
+
+    for x_desc in x_node.descendants:
+        for y_desc in y_node.descendants:
+            if x_desc.idx == y_desc.idx:
+                return True
+
+    return False
+
