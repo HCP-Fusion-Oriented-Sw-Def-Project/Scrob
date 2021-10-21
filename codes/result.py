@@ -224,6 +224,8 @@ class CompareResult(object):
         self.draw_changed_nodes()
         self.draw_added_nodes()
 
+        self.draw_list_nodes()
+
         self.print_result()
 
     def draw_changed_nodes(self):
@@ -279,6 +281,38 @@ class CompareResult(object):
             os.makedirs(self.output_path)
 
         cv2.imwrite(self.output_path + '/' + 'added_nodes.png', img)
+
+    def draw_list_nodes(self):
+        """
+        对base_version以及updated_version都画出列表节点以及列表节点的父节点 用于验证
+        """
+
+        # base_version
+        img = cv2.imread(self.base_img_path)
+        for node in self.base_complete_tree.main_xml_tree.list_parent_nodes:
+            x1, y1, x2, y2 = node.parse_bounds()
+            img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        cv2.imwrite(self.output_path + '/' + 'base_list_parent_nodes.png', img)
+
+        img = cv2.imread(self.base_img_path)
+        for node in self.base_complete_tree.main_xml_tree.list_nodes:
+            x1, y1, x2, y2 = node.parse_bounds()
+            img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        cv2.imwrite(self.output_path + '/' + 'base_list_nodes.png', img)
+
+        # updated_version
+        img = cv2.imread(self.updated_img_path)
+        for node in self.updated_complete_tree.main_xml_tree.list_parent_nodes:
+            x1, y1, x2, y2 = node.parse_bounds()
+            img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        cv2.imwrite(self.output_path + '/' + 'updated_list_parent_nodes.png', img)
+
+        img = cv2.imread(self.updated_img_path)
+        for node in self.updated_complete_tree.main_xml_tree.list_nodes:
+            x1, y1, x2, y2 = node.parse_bounds()
+            img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        cv2.imwrite(self.output_path + '/' + 'updated_list_nodes.png', img)
 
     def print_result(self):
         """

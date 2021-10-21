@@ -16,6 +16,8 @@ class TreeNode(object):
         self.children = []
         self.descendants = []  # 节点的子孙节点
 
+        self.list_ans = None # 倘若节点在列表内部 那么记录其祖先节点 这个祖先节点就是这个列表
+
         self.dynamic_changed_type = ChangedType.REMAIN
 
         # 判断是否存在于列表中

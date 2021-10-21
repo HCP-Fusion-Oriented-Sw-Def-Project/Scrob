@@ -179,6 +179,9 @@ def get_list_node_test():
                 if common_ans not in list_parent_nodes and common_ans.full_xpath != '//':
                     list_parent_nodes.append(common_ans)
 
+    # 去重前先按照节点的层次对列表进行排序（与下面的去重算法实现有关)
+    list_parent_nodes.sort(key=lambda node: node.layer)
+
     # 给list_parent_nodes去重
     tmp_list_parent_nodes = []
     for i in range(len(list_parent_nodes)):
@@ -201,12 +204,25 @@ def get_list_node_test():
     if not os.path.exists(dir):
         os.makedirs(dir)
 
+    a = None
+    for node in list_parent_nodes:
+        for child in node.children:
+            if child.attrib['bounds'] == '[0,342][540,517]':
+                a = child
+                break
+
+    for desc in a.descendants:
+        if not desc.children and desc.dynamic_changed_type != ChangedType.REMAIN:
+            print(desc.attrib)
+            print(desc.dynamic_changed_attrs)
+
     count = 0
     for node in list_parent_nodes:
         flag = False
         n_img = img.copy()
         for child in node.children:
             if has_desc_in_changed_cls(child, xml_tree1):
+                # print(child.attrib)
                 flag = True
                 x1, y1, x2, y2 = child.parse_bounds()
                 n_img = cv2.rectangle(n_img, (x1, y1), (x2, y2), (0, 0, 255), 2)

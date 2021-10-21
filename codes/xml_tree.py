@@ -98,6 +98,9 @@ class XmlTree(object):
         # 列表节点的父节点
         self.list_parent_nodes = []
 
+        # 列表节点
+        self.list_nodes = []
+
         # 以下变量用于统计叶子各个属性的数量 用于构造xpath
         self.leaf_resource_id_count = {}
         self.leaf_text_count = {}
@@ -608,57 +611,46 @@ class XmlTree(object):
                     if common_ans not in list_parent_nodes and common_ans.full_xpath != '//':
                         list_parent_nodes.append(common_ans)
 
+        # 去重前先按照节点的层次对列表进行排序（与下面的去重算法实现有关)
+        list_parent_nodes.sort(key=lambda node: node.layer)
+
         # 给list_parent_nodes去重
-        tmp_list_parent_nodes = []
-        for i in range(len(list_parent_nodes)):
-            flag = True
-            for j in range(i + 1, len(list_parent_nodes)):
-                x_node = list_parent_nodes[i]
-                y_node = list_parent_nodes[j]
-                # layer数越大 说明在树中的层次越低
-                if has_common_desc(x_node, y_node) and x_node.layer > y_node.layer:
-                    flag = False
+        if len(list_parent_nodes) > 1:
+            tmp_list_parent_nodes = []
+            for i in range(len(list_parent_nodes)):
+                flag = True
+                for j in range(i + 1, len(list_parent_nodes)):
+                    x_node = list_parent_nodes[i]
+                    y_node = list_parent_nodes[j]
+                    # layer数越大 说明在树中的层次越低
+                    if has_common_desc(x_node, y_node) and x_node.layer > y_node.layer:
+                        flag = False
 
-            if flag and x_node not in tmp_list_parent_nodes:
-                tmp_list_parent_nodes.append(x_node)
+                if flag and x_node not in tmp_list_parent_nodes:
+                    tmp_list_parent_nodes.append(x_node)
 
-        list_parent_nodes = tmp_list_parent_nodes
+            list_parent_nodes = tmp_list_parent_nodes
 
         self.list_parent_nodes = list_parent_nodes
 
         changed_list_nodes = []
 
-        count = 0
         # 找到列表根节点下的每一个包含变化子孙节点的列表节点 一般情况下 倘若能找到正常的列表节点根节点 则这一步没必要
         # 不行 这样有的没变化的列表就找不出来
-        # for node in list_parent_nodes:
-        #     if check_for_root_list_node(node):
-        #         for child in node.children:
-        #             changed_list_nodes.append(child)
-        #     else:
-        #         for child in node.children:
-        #             if has_desc_in_changed_cls(child, self):
-        #                 changed_list_nodes.append(child)
-        #     count += 1
+        for node in list_parent_nodes:
+            for child in node.children:
+                if has_desc_in_changed_cls(child, self):
+                    changed_list_nodes.append(child)
 
-        # count = 0
-        # for node in list_parent_nodes:
-        #     if count == 1:
-        #         print(str(count) + str(check_for_root_list_node(node)))
-        #         for child in node.children:
-        #             if has_desc_in_changed_cls(child, self):
-        #                 changed_list_nodes.append(child)
-        #     elif count == 0:
-        #         print(str(count) + str(check_for_root_list_node(node)))
-        #         for child in node.children:
-        #             changed_list_nodes.append(child)
-        #     count += 1
+        # 在这里含有变化的节点被视为是列表节点
+        self.list_nodes = changed_list_nodes
 
-        # # 遍历这些列表根节点的子孙节点 将它们的子孙节点的聚类找出
+        # 遍历这些列表根节点的子孙节点 将它们的子孙节点的聚类找出
         for node in changed_list_nodes:
             for descendant in node.descendants:
                 if not descendant.children:
                     descendant.is_in_list = True
+                    descendant.list_ans = node
                     if descendant.cluster_id != -1:
                         self.list_clusters_id.add(descendant.cluster_id)
                     else:
@@ -716,53 +708,53 @@ def get_nodes_similar_score(x_node, y_node):
         return score
 
 
-def check_for_root_list_node(node):
-    """
-    判断一个根节点的子节点中
-    有多少个子节点是结构相同的（相当于子节点聚类）
-    如果某个聚类大于三分之二，则返回True 则将其所有的子节点视为是列表节点
-    否则 只将其包含动态变化子孙节点的子节点视为是列表节点
-    """
-
-    # 算出该根根节点的子节点数量
-    length = len(node.children)
-    clusters = {}
-    cluster_id = 0  # 叶子节点的聚类与非叶子节点的聚类分开算
-
-    # 重新更正非叶子节点的cluster_id
-    for child in node.children:
-        child.cluster_id = -1
-
-    # 进行一个聚类的处理和计算 对非叶子节点(新的临时聚类)
-    for i in range(length):
-        for j in range(i + 1, length):
-            x_child = node.children[i]
-            y_child = node.children[j]
-            if is_similar(x_child, y_child):
-                # 都不在聚类之内
-                if x_child.cluster_id == -1 and y_child.cluster_id == -1:
-                    clusters[cluster_id] = []
-                    clusters[cluster_id].append(x_child.idx)
-                    clusters[cluster_id].append(y_child.idx)
-                    x_child.cluster_id = cluster_id
-                    y_child.cluster_id = cluster_id
-                    cluster_id += 1
-                # x_child已经属于某个聚类
-                elif x_child.cluster_id != -1 and y_child.cluster_id == -1:
-                    if y_child.idx not in clusters[x_child.cluster_id]:
-                        clusters[x_child.cluster_id].append(y_child.idx)
-                        y_child.cluster_id = x_child.cluster_id
-                # y_child 已属于某个聚类
-                elif y_child.cluster_id != -1 and x_child.cluster_id == -1:
-                    if x_child.idx not in clusters[y_child.cluster_id]:
-                        clusters[y_child.cluster_id].append(x_child.idx)
-                        x_child.cluster_id = y_child.cluster_id
-
-    for key, cluster_id_list in clusters.items():
-        if len(cluster_id_list) >= length / 2:
-            return True
-
-    return False
+# def check_for_root_list_node(node):
+#     """
+#     判断一个节点的子节点中
+#     有多少个子节点是结构相同的（相当于子节点聚类）
+#     如果某个聚类大于二分之一，则返回True 则将其所有的子节点视为是列表节点
+#     否则 只将其包含动态变化子孙节点的子节点视为是列表节点
+#     """
+#
+#     # 算出该根根节点的子节点数量
+#     length = len(node.children)
+#     clusters = {}
+#     cluster_id = 0  # 叶子节点的聚类与非叶子节点的聚类分开算
+#
+#     # 重新更正非叶子节点的cluster_id
+#     for child in node.children:
+#         child.cluster_id = -1
+#
+#     # 进行一个聚类的处理和计算 对非叶子节点(新的临时聚类)
+#     for i in range(length):
+#         for j in range(i + 1, length):
+#             x_child = node.children[i]
+#             y_child = node.children[j]
+#             if is_similar(x_child, y_child):
+#                 # 都不在聚类之内
+#                 if x_child.cluster_id == -1 and y_child.cluster_id == -1:
+#                     clusters[cluster_id] = []
+#                     clusters[cluster_id].append(x_child.idx)
+#                     clusters[cluster_id].append(y_child.idx)
+#                     x_child.cluster_id = cluster_id
+#                     y_child.cluster_id = cluster_id
+#                     cluster_id += 1
+#                 # x_child已经属于某个聚类
+#                 elif x_child.cluster_id != -1 and y_child.cluster_id == -1:
+#                     if y_child.idx not in clusters[x_child.cluster_id]:
+#                         clusters[x_child.cluster_id].append(y_child.idx)
+#                         y_child.cluster_id = x_child.cluster_id
+#                 # y_child 已属于某个聚类
+#                 elif y_child.cluster_id != -1 and x_child.cluster_id == -1:
+#                     if x_child.idx not in clusters[y_child.cluster_id]:
+#                         clusters[y_child.cluster_id].append(x_child.idx)
+#                         x_child.cluster_id = y_child.cluster_id
+#
+#     for key, cluster_id_list in clusters.items():
+#         if len(cluster_id_list) >= length / 2:
+#             return True
+#
+#     return False
 
 
 def is_similar(x_node, y_node):
