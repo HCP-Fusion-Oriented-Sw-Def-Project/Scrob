@@ -204,18 +204,6 @@ def get_list_node_test():
     if not os.path.exists(dir):
         os.makedirs(dir)
 
-    a = None
-    for node in list_parent_nodes:
-        for child in node.children:
-            if child.attrib['bounds'] == '[0,342][540,517]':
-                a = child
-                break
-
-    for desc in a.descendants:
-        if not desc.children and desc.dynamic_changed_type != ChangedType.REMAIN:
-            print(desc.attrib)
-            print(desc.dynamic_changed_attrs)
-
     count = 0
     for node in list_parent_nodes:
         flag = False
@@ -502,38 +490,45 @@ def compare_test():
     get_nodes_tag(xml_tree1, xml_tree2)
 
     xml_tree1.get_list_clusters()
-    xml_tree2.get_list_clusters()
-    xml_tree1.get_single_nodes()
-    xml_tree2.get_single_nodes()
 
-    xml_tree_list1 = [xml_tree1, xml_tree2]
-    complete_tree1 = CompleteTree(xml_tree_list1, xml_tree1)
+    for node in xml_tree1.nodes:
+        if not node.children and node.is_in_list:
+            print(node.attrib)
+            print(node.list_ans.attrib)
+            print(node.attrib['rel_bounds'])
 
-    complete_tree1.merge_cluster()
-
-    complete_tree1.get_added_single_nodes()
-
-    # updated_version解析数据
-    xml_tree3, nodes3 = parse_xml(xml3, png3)
-    xml_tree4, nodes4 = parse_xml(xml4, png4)
-
-    # 进行标记
-    get_nodes_tag(xml_tree3, xml_tree4)
-
-    xml_tree3.get_list_clusters()
-    xml_tree4.get_list_clusters()
-    xml_tree3.get_single_nodes()
-    xml_tree4.get_single_nodes()
-
-    xml_tree_list2 = [xml_tree3, xml_tree4]
-    complete_tree2 = CompleteTree(xml_tree_list2, xml_tree3)
-
-    complete_tree2.merge_cluster()
-    complete_tree2.get_added_single_nodes()
-
-    re = CompareResult(complete_tree1, complete_tree2, 540, path + '/result')
-
-    re.get_result()
+    # xml_tree2.get_list_clusters()
+    # xml_tree1.get_single_nodes()
+    # xml_tree2.get_single_nodes()
+    #
+    # xml_tree_list1 = [xml_tree1, xml_tree2]
+    # complete_tree1 = CompleteTree(xml_tree_list1, xml_tree1)
+    #
+    # complete_tree1.merge_cluster()
+    #
+    # complete_tree1.get_added_single_nodes()
+    #
+    # # updated_version解析数据
+    # xml_tree3, nodes3 = parse_xml(xml3, png3)
+    # xml_tree4, nodes4 = parse_xml(xml4, png4)
+    #
+    # # 进行标记
+    # get_nodes_tag(xml_tree3, xml_tree4)
+    #
+    # xml_tree3.get_list_clusters()
+    # xml_tree4.get_list_clusters()
+    # xml_tree3.get_single_nodes()
+    # xml_tree4.get_single_nodes()
+    #
+    # xml_tree_list2 = [xml_tree3, xml_tree4]
+    # complete_tree2 = CompleteTree(xml_tree_list2, xml_tree3)
+    #
+    # complete_tree2.merge_cluster()
+    # complete_tree2.get_added_single_nodes()
+    #
+    # re = CompareResult(complete_tree1, complete_tree2, 540, path + '/result')
+    #
+    # re.get_result()
 
 
 def new_cluster_strategy_test():
@@ -606,7 +601,7 @@ def main():
     # print(nodes[0].full_xpath)
 
 
-get_list_node_test()
+# get_list_node_test()
 # main()
 # get_changed_image_test()
 # merge_cluster_test()
@@ -614,6 +609,6 @@ get_list_node_test()
 
 # single_nodes_compare_test()
 
-# compare_test()
+compare_test()
 
 # new_cluster_strategy_test()

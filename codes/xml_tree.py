@@ -651,6 +651,7 @@ class XmlTree(object):
                 if not descendant.children:
                     descendant.is_in_list = True
                     descendant.list_ans = node
+                    descendant.construct_rel_bounds(node)
                     if descendant.cluster_id != -1:
                         self.list_clusters_id.add(descendant.cluster_id)
                     else:
@@ -696,10 +697,8 @@ def get_nodes_similar_score(x_node, y_node):
         # 如果 横/纵 坐标  以及 长/宽 有两者占 则表示是同类 即 横坐标和长度 纵坐标和宽度 一共4种组合
         # 这种方法只对一个页面上的没有id的同类元素有效
         score = 0
-        x1, y1, x2, y2 = x_node.parse_bounds()
-        x3, y3, x4, y4 = y_node.parse_bounds()
 
-        if x1 == x3 or y1 == y3:
+        if x_node.x_loc == y_node.x_loc or y_node.x_loc == y_node.y_loc:
             score += 0.4
 
         if x_node.width == y_node.width or x_node.height == y_node.height:
@@ -757,29 +756,29 @@ def get_nodes_similar_score(x_node, y_node):
 #     return False
 
 
-def is_similar(x_node, y_node):
-    """
-    判断两个列表节点的子孙节点有多少是属于同一个聚类的
-    从而判断这两个列表节点是不是同类的
-    """
-
-    x_clusters = []
-    y_clusters = []
-
-    for desc in x_node.descendants:
-        if not desc.children and desc.cluster_id != -1:
-            x_clusters.append(desc.cluster_id)
-
-    for desc in y_node.descendants:
-        if not desc.children and desc.cluster_id != -1:
-            y_clusters.append(desc.cluster_id)
-
-    for x_id in x_clusters:
-        for y_id in y_clusters:
-            if x_id == y_id:  # 目前是假如有相同聚类的子孙节点 则视为是一类的
-                return True
-
-    return False
+# def is_similar(x_node, y_node):
+#     """
+#     判断两个列表节点的子孙节点有多少是属于同一个聚类的
+#     从而判断这两个列表节点是不是同类的
+#     """
+#
+#     x_clusters = []
+#     y_clusters = []
+#
+#     for desc in x_node.descendants:
+#         if not desc.children and desc.cluster_id != -1:
+#             x_clusters.append(desc.cluster_id)
+#
+#     for desc in y_node.descendants:
+#         if not desc.children and desc.cluster_id != -1:
+#             y_clusters.append(desc.cluster_id)
+#
+#     for x_id in x_clusters:
+#         for y_id in y_clusters:
+#             if x_id == y_id:  # 目前是假如有相同聚类的子孙节点 则视为是一类的
+#                 return True
+#
+#     return False
 
 
 def parse_xml(xml_path, img_path):
