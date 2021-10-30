@@ -69,6 +69,9 @@ class TreeNode(object):
         # 判断该节点跨版本对比时是否发生变化
         self.has_changed = False
 
+        # 记录节点来源于哪个xml文件 编号从1开始
+        self.source_xml_id = -1
+
     def parse_bounds(self):
         """
         解析bounds 获取节点坐标范围

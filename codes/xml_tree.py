@@ -17,6 +17,12 @@ class CompleteTree(object):
         # self.list_cluster_id = 1  # 重新对这些聚类进行编号
         self.extra_single_nodes = []  # 从其它xml文件中获取的single_nodes 使用xpath来进行补充
         self.xml_tree_list = xml_tree_list  # 存储各版本的xml_tree
+
+        #  初始化xml_tree_list的树编号
+        for i in range(len(xml_tree_list)):
+            for node in xml_tree_list[i].nodes:
+                node.source_xml_id = i + 1
+
         self.main_xml_tree = main_xml_tree  # 主要用于对比的xml树
 
         # 直接复制 因为copy只能copy第一层 没用
@@ -24,33 +30,6 @@ class CompleteTree(object):
 
         # 沿用了已有id 自创了部分id 100之后的则是补充的
         self.clusters_id = 100
-
-    # def merge_cluster(self):
-    #     """
-    #     聚类合并
-    #     """
-    #
-    #     main_nodes = self.main_xml_tree.nodes
-    #     #  首先以main_xml_tree的聚类为基准
-    #     for cluster_id in self.main_xml_tree.list_clusters_id:
-    #         idx_list = self.main_xml_tree.clusters[cluster_id]
-    #
-    #         # 只用一个节点表示一个聚类 (比较不合理 之后需更改)
-    #         self.list_cluster_nodes.append(main_nodes[idx_list[0]])
-    #
-    #     # 遍历其它树
-    #     for xml_tree in self.xml_tree_list:
-    #         if xml_tree != self.main_xml_tree:
-    #             for cluster_id in xml_tree.list_clusters_id:
-    #                 idx_list = xml_tree.clusters[cluster_id]
-    #                 central_node = xml_tree.nodes[idx_list[0]]
-    #                 flag = False
-    #                 for node in self.list_cluster_nodes:
-    #                     sim = get_nodes_similar_score(central_node, node)
-    #                     if sim >= 0.8:
-    #                         flag = True
-    #                 if not flag:
-    #                     self.list_cluster_nodes.append(central_node)
 
     def construct_extra_list_cluster(self, nodes, cluster_id):
         """
@@ -921,80 +900,6 @@ def get_nodes_similar_score(x_node, y_node):
             score += 0.4
 
         return score
-
-
-# def check_for_root_list_node(node):
-#     """
-#     判断一个节点的子节点中
-#     有多少个子节点是结构相同的（相当于子节点聚类）
-#     如果某个聚类大于二分之一，则返回True 则将其所有的子节点视为是列表节点
-#     否则 只将其包含动态变化子孙节点的子节点视为是列表节点
-#     """
-#
-#     # 算出该根根节点的子节点数量
-#     length = len(node.children)
-#     clusters = {}
-#     cluster_id = 0  # 叶子节点的聚类与非叶子节点的聚类分开算
-#
-#     # 重新更正非叶子节点的cluster_id
-#     for child in node.children:
-#         child.cluster_id = -1
-#
-#     # 进行一个聚类的处理和计算 对非叶子节点(新的临时聚类)
-#     for i in range(length):
-#         for j in range(i + 1, length):
-#             x_child = node.children[i]
-#             y_child = node.children[j]
-#             if is_similar(x_child, y_child):
-#                 # 都不在聚类之内
-#                 if x_child.cluster_id == -1 and y_child.cluster_id == -1:
-#                     clusters[cluster_id] = []
-#                     clusters[cluster_id].append(x_child.idx)
-#                     clusters[cluster_id].append(y_child.idx)
-#                     x_child.cluster_id = cluster_id
-#                     y_child.cluster_id = cluster_id
-#                     cluster_id += 1
-#                 # x_child已经属于某个聚类
-#                 elif x_child.cluster_id != -1 and y_child.cluster_id == -1:
-#                     if y_child.idx not in clusters[x_child.cluster_id]:
-#                         clusters[x_child.cluster_id].append(y_child.idx)
-#                         y_child.cluster_id = x_child.cluster_id
-#                 # y_child 已属于某个聚类
-#                 elif y_child.cluster_id != -1 and x_child.cluster_id == -1:
-#                     if x_child.idx not in clusters[y_child.cluster_id]:
-#                         clusters[y_child.cluster_id].append(x_child.idx)
-#                         x_child.cluster_id = y_child.cluster_id
-#
-#     for key, cluster_id_list in clusters.items():
-#         if len(cluster_id_list) >= length / 2:
-#             return True
-#
-#     return False
-
-
-# def is_similar(x_node, y_node):
-#     """
-#     判断两个列表节点的子孙节点有多少是属于同一个聚类的
-#     从而判断这两个列表节点是不是同类的
-#     """
-#
-#     x_clusters = []
-#     y_clusters = []
-#
-#     for desc in x_node.descendants:
-#         if not desc.children and desc.cluster_id != -1:
-#             x_clusters.append(desc.cluster_id)
-#
-#     for desc in y_node.descendants:
-#         if not desc.children and desc.cluster_id != -1:
-#             y_clusters.append(desc.cluster_id)
-#
-#     for x_id in x_clusters:
-#         for y_id in y_clusters:
-#             if x_id == y_id:  # 目前是假如有相同聚类的子孙节点 则视为是一类的
-#                 return True
-#
-#     return False
 
 
 def parse_xml(xml_path, img_path):

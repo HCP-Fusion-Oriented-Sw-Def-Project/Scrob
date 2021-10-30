@@ -167,6 +167,11 @@ class CompareResult(object):
                     'layout' not in updated_list_clusters[y_key]['nodes'][0].attrib['class']:
                 self.added_cluster_id.append(y_key)
 
+        print(len(self.removed_cluster_id))
+        print(len(self.matched_cluster_id))
+        print(len(self.added_cluster_id))
+
+
     def get_matched_single_nodes(self, node, compare_nodes, is_extra):
         """
         对single_node进行匹配
@@ -307,18 +312,17 @@ class CompareResult(object):
         self.list_clusters_compare()
         # self.get_clusters_changes()
 
-        self.draw_removed_single_nodes()
-        self.draw_changed_single_nodes()
-        self.draw_added_single_nodes()
+        # self.draw_removed_single_nodes()
+        # self.draw_changed_single_nodes()
+        # self.draw_added_single_nodes()
 
-        self.draw_list_nodes()
-
-        self.draw_removed_cluster_nodes()
+        # self.draw_list_nodes()
+        # self.draw_removed_cluster_nodes()
         # self.draw_changed_cluster_nodes()
-        self.draw_added_cluster_nodes()
 
-        self.draw_removed_list_style()
-        self.draw_added_list_style()
+        # self.draw_added_cluster_nodes()
+        # self.draw_removed_list_style()
+        # self.draw_added_list_style()
 
         # self.print_result()
 
@@ -607,15 +611,3 @@ def is_same_cluster(x_node, y_node, x_common_attrs, y_common_attrs):
     #     return True
 
     return False
-
-# def is_cluster_existed(node, compared_nodes):
-#     """
-#     判断聚类节点是否在另一个版本中存在
-#     """
-#
-#     # for tmp_node in compared_nodes:
-#     #     sim = get_nodes_similar_score(node, tmp_node)
-#     #     if sim >= 0.8:
-#     #         return True
-#
-#     return False
