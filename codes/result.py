@@ -153,10 +153,10 @@ class CompareResult(object):
 
         # 获得移除的聚类 以及匹配上的聚类
         for x_key in base_list_clusters.keys():
-            if base_list_clusters[x_key]['matched_cluster_id'] == -1 and \
-                    base_list_clusters[x_key]['nodes'][0].attrib['class'] != 'android.view.View' and \
-                    'layout' not in base_list_clusters[x_key]['nodes'][0].attrib['class']:
-                self.removed_cluster_id.append(x_key)
+            if base_list_clusters[x_key]['matched_cluster_id'] == -1:
+                if base_list_clusters[x_key]['nodes'][0].attrib['class'] != 'android.view.View' and \
+                        'layout' not in base_list_clusters[x_key]['nodes'][0].attrib['class']:
+                    self.removed_cluster_id.append(x_key)
             else:
                 self.matched_cluster_id.append(x_key)
 
@@ -166,11 +166,6 @@ class CompareResult(object):
                     updated_list_clusters[y_key]['nodes'][0].attrib['class'] != 'android.view.View' and \
                     'layout' not in updated_list_clusters[y_key]['nodes'][0].attrib['class']:
                 self.added_cluster_id.append(y_key)
-
-        print(len(self.removed_cluster_id))
-        print(len(self.matched_cluster_id))
-        print(len(self.added_cluster_id))
-
 
     def get_matched_single_nodes(self, node, compare_nodes, is_extra):
         """
@@ -310,6 +305,9 @@ class CompareResult(object):
         self.get_single_nodes_changes()
 
         self.list_clusters_compare()
+
+        self.draw_meaningless_list_cluster_nodes()
+
         # self.get_clusters_changes()
 
         # self.draw_removed_single_nodes()
@@ -519,6 +517,36 @@ class CompareResult(object):
             os.makedirs(path)
 
         cv2.imwrite(path + '/' + 'added_list_style.png', img)
+
+    def draw_meaningless_list_cluster_nodes(self):
+        """
+        在列表中找出layout节点和android.view.View节点
+        对base_version和updated_version分别找出
+        """
+
+        # base_version
+        img = cv2.imread(self.base_img_path)
+        for key in self.base_complete_tree.list_clusters.keys():
+            nodes = self.base_complete_tree.list_clusters[key]['nodes']
+            for node in nodes:
+                if node.attrib['class'] == 'android.view.View':
+                    # if node.attrib['class'] == 'android.view.View' or 'layout' in node.attrib['class']:
+                    x1, y1, x2, y2 = node.parse_bounds()
+                    img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        cv2.imwrite(self.output_path + '/' + 'base_meaningless_list_clusters_nodes.png', img)
+
+        # updated_version
+        img = cv2.imread(self.updated_img_path)
+        for key in self.updated_complete_tree.list_clusters.keys():
+            nodes = self.updated_complete_tree.list_clusters[key]['nodes']
+            for node in nodes:
+                if node.attrib['class'] == 'android.view.View':
+                    # if node.attrib['class'] == 'android.view.View' or 'layout' in node.attrib['class']:
+                    x1, y1, x2, y2 = node.parse_bounds()
+                    img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        cv2.imwrite(self.output_path + '/' + 'updated_meaningless_list_clusters_nodes.png', img)
 
     def print_result(self):
         """

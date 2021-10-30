@@ -788,4 +788,5 @@ def cluster_correction_test():
     re.get_result()
 
 
-cluster_correction_test()
+# cluster_correction_test()
+new_strategy_of_cluster_compare_test()
