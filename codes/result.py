@@ -306,7 +306,9 @@ class CompareResult(object):
 
         self.list_clusters_compare()
 
-        self.draw_meaningless_list_cluster_nodes()
+        # self.draw_meaningless_list_cluster_nodes()
+
+        self.draw_list_cluster_nodes()
 
         # self.get_clusters_changes()
 
@@ -315,7 +317,7 @@ class CompareResult(object):
         # self.draw_added_single_nodes()
 
         # self.draw_list_nodes()
-        self.draw_removed_cluster_nodes()
+        # self.draw_removed_cluster_nodes()
         # self.draw_changed_cluster_nodes()
 
         # self.draw_added_cluster_nodes()
@@ -547,6 +549,32 @@ class CompareResult(object):
                     img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
         cv2.imwrite(self.output_path + '/' + 'updated_meaningless_list_clusters_nodes.png', img)
+
+    def draw_list_cluster_nodes(self):
+        """
+        绘制列表中的所有聚类节点
+        base_version以及updated_version
+        """
+
+        # base_version
+        img = cv2.imread(self.base_img_path)
+        for key in self.base_complete_tree.list_clusters.keys():
+            nodes = self.base_complete_tree.list_clusters[key]['nodes']
+            for node in nodes:
+                x1, y1, x2, y2 = node.parse_bounds()
+                img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        cv2.imwrite(self.output_path + '/' + 'base_list_clusters_nodes.png', img)
+
+        # updated_version
+        img = cv2.imread(self.updated_img_path)
+        for key in self.updated_complete_tree.list_clusters.keys():
+            nodes = self.updated_complete_tree.list_clusters[key]['nodes']
+            for node in nodes:
+                x1, y1, x2, y2 = node.parse_bounds()
+                img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        cv2.imwrite(self.output_path + '/' + 'updated_list_clusters_nodes.png', img)
 
     def print_result(self):
         """
