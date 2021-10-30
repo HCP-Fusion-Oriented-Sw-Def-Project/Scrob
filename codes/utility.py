@@ -33,22 +33,46 @@ def is_bounds_matched(x_node, y_node, width):
             x_node.dynamic_changed_type != y_node.dynamic_changed_type:
         return False
 
-    x1, y1, x2, y2 = x_node.parse_bounds()
-    x3, y3, x4, y4 = y_node.parse_bounds()
-
-    x_width = abs(x1 - x2)
-    x_height = abs(y1 - y2)
-
-    y_width = abs(x3 - x4)
-    y_height = abs(y3 - y4)
+    # x1, y1, x2, y2 = x_node.parse_bounds()
+    # x3, y3, x4, y4 = y_node.parse_bounds()
+    #
+    # x_width = abs(x1 - x2)
+    # x_height = abs(y1 - y2)
+    #
+    # y_width = abs(x3 - x4)
+    # y_height = abs(y3 - y4)
 
     # 可优化的地方 分为text和image来分别进行判断 如果是text且会变化 那么忽略text
     if x_node.attrib['class'] == 'text' and x_node.dynamic_changed_attrs['text'] == 1:
-        scores = abs(x1 - x3) + abs(y1 - y3) + abs(x_height - y_height)
+        scores = (abs(x_node.x_loc - y_node.x_loc) +
+                  abs(x_node.y_loc - y_node.y_loc) +
+                  abs(x_node.height - y_node.height))
     else:
-        scores = abs(x1 - x3) + abs(y1 - y3) + abs(x_width - y_width) + abs(x_height - y_height)
+        scores = (abs(x_node.x_loc - y_node.x_loc) + abs(x_node.y_loc - y_node.y_loc) +
+                  abs(x_node.width - y_node.width) + abs(x_node.height - y_node.height))
 
     if scores > width / 8:
+        return False
+
+    return True
+
+
+def is_rel_bounds_matched(x_node, y_node, x_common_attrs):
+    """
+    判断两个节点的边界是否可以匹配上
+    在列表中
+    """
+
+    x1, y1, x2, y2 = x_node.parse_rel_bounds()
+    x3, y3, x4, y4 = y_node.parse_rel_bounds()
+
+    if x_node.attrib['class'] == 'text' and x_common_attrs['text'] == 0:
+        scores = abs(x1 - x3) + abs(y1 - y1) + abs(x_node.height - y_node.height)
+    else:
+        scores = abs(x1 - x3) + abs(y1 - y1) + abs(x_node.width - y_node.width) + abs(x_node.height - y_node.height)
+
+    # 大于列表节点宽度的
+    if scores > x_node.list_ans.width / 30: # 540 / 30 = 18
         return False
 
     return True
@@ -65,6 +89,23 @@ def is_location_changed(x_node, y_node, tag):
         return False
     else:
         if abs(x_node.x_loc - y_node.x_loc) + abs(x_node.y_loc - y_node.y_loc) > 10:
+            return True
+        return False
+
+
+def is_rel_location_changed(x_node, y_node, tag):
+    """
+    判断节点相对坐标是否变化
+    """
+    x1, y1, x2, y2 = x_node.parse_rel_bounds()
+    x3, y3, x4, y4 = y_node.parse_rel_bounds()
+
+    if tag:
+        if abs(x1 - x3) + abs(y1 - y3) > 0:
+            return True
+        return False
+    else:
+        if abs(x1 - x3) + abs(y1 - y3) > 5:
             return True
         return False
 
@@ -271,4 +312,3 @@ def has_common_desc(x_node, y_node):
                 return True
 
     return False
-

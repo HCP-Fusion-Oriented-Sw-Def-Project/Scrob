@@ -19,7 +19,7 @@ class TreeNode(object):
         self.children = []
         self.descendants = []  # 节点的子孙节点
 
-        self.list_ans = None # 倘若节点在列表内部 那么记录其祖先节点 这个祖先节点就是这个列表
+        self.list_ans = None  # 倘若节点在列表内部 那么记录其祖先节点 这个祖先节点就是这个列表
 
         self.dynamic_changed_type = ChangedType.REMAIN
 
@@ -117,6 +117,29 @@ class TreeNode(object):
         rel_bounds = '[' + str(rel_x1) + ',' + str(rel_y1) + ']' + '[' + str(rel_x2) + ',' + str(rel_y2) + ']'
 
         self.attrib['rel_bounds'] = rel_bounds
+
+    def parse_rel_bounds(self):
+        """
+        解析rel_bounds
+        """
+
+        bounds = self.attrib['rel_bounds']
+        str_1 = bounds.split(']')[0] + ']'
+        x1 = str_1.split(',')[0]
+        x1 = int(x1[1:])
+
+        y1 = str_1.split(',')[1]
+        y1 = int(y1[:-1])
+
+        str_2 = bounds.split(']')[1] + ']'
+        x2 = str_2.split(',')[0]
+        x2 = int(x2[1:])
+
+        y2 = str_2.split(',')[1]
+        y2 = int(y2[:-1])
+
+        # 返回元素相对于列表节点左上角和右下角坐标
+        return x1, y1, x2, y2
 
     def get_descendants(self, node):
         """

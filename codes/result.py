@@ -1,6 +1,6 @@
 import os
 from utility import *
-from xml_tree import get_nodes_similar_score
+from str_utility import delete_num_in_str
 
 
 class CompareResult(object):
@@ -23,6 +23,14 @@ class CompareResult(object):
         self.matched_single_nodes = []
         self.changed_single_nodes = []
         self.added_single_nodes = []
+
+        # 被移除的节点 变化的节点 新增的节点 cluster_nodes
+        # 只记录聚类id 也就是list_clusters中的key
+        self.removed_cluster_id = []
+        self.matched_cluster_id = []
+        self.changed_cluster_id = []
+        # self.updated_changed_cluster_id = []
+        self.added_cluster_id = []
 
         # 对比屏幕的宽度设置
         self.width = width
@@ -79,6 +87,85 @@ class CompareResult(object):
     #                 flag = True
     #         if flag:
     #             self.added_single_nodes.append(node)
+
+    def get_clusters_changes(self):
+        """
+        获取聚类的变化
+        """
+
+        for x_key in self.matched_cluster_id:
+            has_changed = False
+            x_node = self.base_complete_tree.list_clusters[x_key]['nodes'][0]
+            x_common_attrs = self.base_complete_tree.list_clusters[x_key]['common_attrs']
+            y_key = self.base_complete_tree.list_clusters[x_key]['matched_cluster_id']
+            y_node = self.updated_complete_tree.list_clusters[y_key]['nodes'][0]
+
+            if x_common_attrs['rel_location'] == 1 and \
+                    is_rel_location_changed(x_node, y_node, False):
+                has_changed = True
+                self.base_complete_tree.list_clusters[x_key]['changed_attrs']['rel_location'] = 1
+
+            if x_common_attrs['size'] == 1 and \
+                    is_size_changed(x_node, y_node, False):
+                has_changed = True
+                self.base_complete_tree.list_clusters[x_key]['changed_attrs']['size'] = 1
+
+            if x_common_attrs['resource-id'] == 1 and \
+                    x_node.attrib['resource-id'] != y_node.attrib['resource-id']:
+                has_changed = True
+                self.base_complete_tree.list_clusters[x_key]['changed_attrs']['resource-id'] = 1
+
+            if x_common_attrs['text'] == 1 and \
+                    x_node.attrib['text'] != y_node.attrib['text']:
+                has_changed = True
+                self.base_complete_tree.list_clusters[x_key]['changed_attrs']['text'] = 1
+
+            if x_common_attrs['content-desc'] == 1 and \
+                    x_node.attrib['content-desc'] != y_node.attrib['content-desc']:
+                has_changed = True
+                self.base_complete_tree.list_clusters[x_key]['changed_attrs']['content-desc'] = 1
+
+            if 'image' in x_node.attrib['class'].lower() and \
+                    x_common_attrs['color'] == 1 and \
+                    is_image_changed(x_node, y_node, self.base_img_path, self.updated_img_path):
+                has_changed = True
+                self.base_complete_tree.list_clusters[x_key]['changed_attrs']['color'] = 1
+
+            if has_changed:
+                self.changed_cluster_id.append(x_key)
+
+    def list_clusters_compare(self):
+        """
+        聚类对比
+        """
+
+        base_list_clusters = self.base_complete_tree.list_clusters
+        updated_list_clusters = self.updated_complete_tree.list_clusters
+
+        for x_key in base_list_clusters.keys():
+            x_node = base_list_clusters[x_key]['nodes'][0]
+            for y_key in updated_list_clusters.keys():
+                y_node = updated_list_clusters[y_key]['nodes'][0]
+                if is_same_cluster(x_node, y_node, base_list_clusters[x_key]['common_attrs'],
+                                   updated_list_clusters[y_key]['common_attrs']):
+                    base_list_clusters[x_key]['matched_cluster_id'] = y_key
+                    updated_list_clusters[y_key]['matched_cluster_id'] = x_key
+
+        # 获得移除的聚类 以及匹配上的聚类
+        for x_key in base_list_clusters.keys():
+            if base_list_clusters[x_key]['matched_cluster_id'] == -1 and \
+                    base_list_clusters[x_key]['nodes'][0].attrib['class'] != 'android.view.View' and \
+                    'layout' not in base_list_clusters[x_key]['nodes'][0].attrib['class']:
+                self.removed_cluster_id.append(x_key)
+            else:
+                self.matched_cluster_id.append(x_key)
+
+        # 获得增加的聚类
+        for y_key in updated_list_clusters.keys():
+            if updated_list_clusters[y_key]['matched_cluster_id'] == -1 and \
+                    updated_list_clusters[y_key]['nodes'][0].attrib['class'] != 'android.view.View' and \
+                    'layout' not in updated_list_clusters[y_key]['nodes'][0].attrib['class']:
+                self.added_cluster_id.append(y_key)
 
     def get_matched_single_nodes(self, node, compare_nodes, is_extra):
         """
@@ -214,19 +301,28 @@ class CompareResult(object):
         获得最终对比的结果
         """
 
-        self.cluster_nodes_compare()
         self.single_nodes_compare()
         self.get_single_nodes_changes()
 
-        self.draw_removed_nodes()
-        self.draw_changed_nodes()
-        self.draw_added_nodes()
+        self.list_clusters_compare()
+        # self.get_clusters_changes()
+
+        self.draw_removed_single_nodes()
+        self.draw_changed_single_nodes()
+        self.draw_added_single_nodes()
 
         self.draw_list_nodes()
 
-        self.print_result()
+        self.draw_removed_cluster_nodes()
+        # self.draw_changed_cluster_nodes()
+        self.draw_added_cluster_nodes()
 
-    def draw_changed_nodes(self):
+        self.draw_removed_list_style()
+        self.draw_added_list_style()
+
+        # self.print_result()
+
+    def draw_changed_single_nodes(self):
         """
         在图中画出变化的节点并打印
         """
@@ -239,12 +335,13 @@ class CompareResult(object):
                 x1, y1, x2, y2 = node.parse_bounds()
                 img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path)
+        path = self.output_path + '/' + 'single_nodes'
+        if not os.path.exists(path):
+            os.makedirs(path)
 
-        cv2.imwrite(self.output_path + '/' + 'changed_nodes.png', img)
+        cv2.imwrite(path + '/' + 'changed_single_nodes.png', img)
 
-    def draw_removed_nodes(self):
+    def draw_removed_single_nodes(self):
         """
         在图中画出移除的节点
         """
@@ -257,14 +354,16 @@ class CompareResult(object):
                 x1, y1, x2, y2 = node.parse_bounds()
                 img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path)
+        path = self.output_path + '/' + 'single_nodes'
 
-        cv2.imwrite(self.output_path + '/' + 'removed_nodes.png', img)
+        if not os.path.exists(path):
+            os.makedirs(path)
 
-    def draw_added_nodes(self):
+        cv2.imwrite(path + '/' + 'removed_single_nodes.png', img)
+
+    def draw_added_single_nodes(self):
         """
-        在图中画出移除的节点
+        在图中画出新增的节点
         """
 
         img = cv2.imread(self.updated_img_path)
@@ -275,10 +374,12 @@ class CompareResult(object):
                 x1, y1, x2, y2 = node.parse_bounds()
                 img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path)
+        path = self.output_path + '/' + 'single_nodes'
 
-        cv2.imwrite(self.output_path + '/' + 'added_nodes.png', img)
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        cv2.imwrite(path + '/' + 'added_single_nodes.png', img)
 
     def draw_list_nodes(self):
         """
@@ -312,6 +413,109 @@ class CompareResult(object):
             img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
         cv2.imwrite(self.output_path + '/' + 'updated_list_nodes.png', img)
 
+    def draw_removed_cluster_nodes(self):
+        """
+        画出减少的聚类节点
+        """
+
+        img = cv2.imread(self.base_img_path)
+        for node in self.base_complete_tree.main_xml_tree.leaf_nodes:
+            for key in self.removed_cluster_id:
+                if node.cluster_id == key:
+                    x1, y1, x2, y2 = node.parse_bounds()
+                    img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        path = self.output_path + '/' + 'cluster_nodes'
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        cv2.imwrite(path + '/' + 'removed_cluster_nodes.png', img)
+
+    def draw_changed_cluster_nodes(self):
+        """
+        画出变化的聚类节点
+        """
+
+        img = cv2.imread(self.base_img_path)
+        for node in self.base_complete_tree.main_xml_tree.leaf_nodes:
+            for key in self.changed_cluster_id:
+                if node.cluster_id == key:
+                    x1, y1, x2, y2 = node.parse_bounds()
+                    img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        path = self.output_path + '/' + 'cluster_nodes'
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        cv2.imwrite(path + '/' + 'changed_cluster_nodes.png', img)
+
+    def draw_added_cluster_nodes(self):
+        """
+        画出新增的聚类节点
+        """
+        img = cv2.imread(self.updated_img_path)
+        for node in self.updated_complete_tree.main_xml_tree.leaf_nodes:
+            for key in self.added_cluster_id:
+                if node.cluster_id == key:
+                    x1, y1, x2, y2 = node.parse_bounds()
+                    img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        path = self.output_path + '/' + 'cluster_nodes'
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        cv2.imwrite(path + '/' + 'added_cluster_nodes.png', img)
+
+    def draw_removed_list_style(self):
+        """
+        画出减少的列表样式
+        """
+
+        img = cv2.imread(self.base_img_path)
+
+        for node in self.base_complete_tree.main_xml_tree.list_nodes:
+            flag = False
+            for descendant in node.descendants:
+                for key in self.removed_cluster_id:
+                    if descendant.cluster_id == key:
+                        flag = True
+
+            if flag:
+                x1, y1, x2, y2 = node.parse_bounds()
+                img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        path = self.output_path + '/' + 'list_style'
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        cv2.imwrite(path + '/' + 'removed_list_style.png', img)
+
+    def draw_added_list_style(self):
+        """
+        画出增加的列表样式
+        """
+
+        img = cv2.imread(self.updated_img_path)
+
+        for node in self.updated_complete_tree.main_xml_tree.list_nodes:
+            flag = False
+            for descendant in node.descendants:
+                for key in self.added_cluster_id:
+                    if descendant.cluster_id == key:
+                        flag = True
+
+            if flag:
+                x1, y1, x2, y2 = node.parse_bounds()
+                img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        path = self.output_path + '/' + 'list_style'
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        cv2.imwrite(path + '/' + 'added_list_style.png', img)
+
     def print_result(self):
         """
         打印结果
@@ -334,15 +538,84 @@ class CompareResult(object):
         #     print(node.attrib)
         #     print('----')
 
+        print('removed_cluster_id')
+        for key in self.removed_cluster_id:
+            print(key)
+            node = self.base_complete_tree.list_clusters[key]['nodes'][0]
+            print(node.attrib)
 
-def is_cluster_existed(node, compared_nodes):
+        print('changed_cluster_id')
+        for key in self.changed_cluster_id:
+            print(key)
+            node = self.base_complete_tree.list_clusters[key]['nodes'][0]
+            print(node.attrib)
+            print(self.base_complete_tree.list_clusters[key]['changed_attrs'])
+
+        print('added_cluster_id')
+        for key in self.added_cluster_id:
+            print(key)
+            node = self.updated_complete_tree.list_clusters[key]['nodes'][0]
+            print(node.attrib)
+
+
+def is_same_cluster(x_node, y_node, x_common_attrs, y_common_attrs):
     """
-    判断聚类节点是否在另一个版本中存在
+    跨版本比较两个聚类是否相同
     """
 
-    for tmp_node in compared_nodes:
-        sim = get_nodes_similar_score(node, tmp_node)
-        if sim >= 0.8:
-            return True
+    if x_node.attrib['class'] != y_node.attrib['class']:
+        return False
+
+    x_node_id = x_node.attrib['resource-id']
+    y_node_id = y_node.attrib['resource-id']
+    x_node_text = x_node.attrib['text']
+    y_node_text = y_node.attrib['text']
+    x_node_content = x_node.attrib['content-desc']
+    y_node_content = y_node.attrib['content-desc']
+
+    if x_node_id.find('/') != -1:
+        x_node_id = x_node_id.split('/')[1]
+
+    if y_node_id.find('/') != -1:
+        y_node_id = y_node_id.split('/')[1]
+
+    if x_node_id == y_node_id:
+        return True
+    else:
+        return False
+
+    # if len(x_node_id) != 0 and len(y_node_id) != 0 and \
+    #         delete_num_in_str(x_node_id) == delete_num_in_str(y_node_id) and \
+    #         x_common_attrs['resource-id'] == 1 and \
+    #         y_common_attrs['resource-id'] == 1:
+    #     return True
+    #
+    # if len(x_node_text) != 0 and len(y_node_text) != 0 and \
+    #         x_node_text == y_node_text and \
+    #         x_common_attrs['text'] == 1 and \
+    #         y_common_attrs['text'] == 1:
+    #     return True
+    #
+    # if len(x_node_content) != 0 and len(y_node_content) != 0 and \
+    #         x_node_content == y_node_content and \
+    #         x_common_attrs['content-desc'] == 1 and \
+    #         y_common_attrs['content-desc'] == 1:
+    #     return True
+    #
+    # if x_common_attrs['rel_location'] == 1 and y_common_attrs['rel_location'] == 1 and \
+    #         is_rel_bounds_matched(x_node, y_node, x_common_attrs):
+    #     return True
 
     return False
+
+# def is_cluster_existed(node, compared_nodes):
+#     """
+#     判断聚类节点是否在另一个版本中存在
+#     """
+#
+#     # for tmp_node in compared_nodes:
+#     #     sim = get_nodes_similar_score(node, tmp_node)
+#     #     if sim >= 0.8:
+#     #         return True
+#
+#     return False
