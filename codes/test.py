@@ -8,6 +8,7 @@ from codes.utility import *
 from result import CompareResult
 from xml_tree import parse_xml
 
+
 # def new_strategy_of_cluster_compare_test():
 #     """
 #     对最新的聚类对比方法进行测试
@@ -95,5 +96,26 @@ from xml_tree import parse_xml
 #     re.get_result()
 
 
+def cluster_test():
+    """
+    测试聚类效果
+    """
+    path = '../compare_test_resources/d' + str(1)
+    xml1 = path + '/' + '1.xml'
+    xml2 = path + '/' + '2.xml'
+    png1 = path + '/' + '1.png'
+    png2 = path + '/' + '2.png'
+
+    xml_tree, nodes = parse_xml(xml1, png1)
+
+    for cluster_id in xml_tree.clusters:
+        cluster = xml_tree.clusters[cluster_id]
+        print('*********************')
+        for node in cluster.nodes:
+            print(node.attrib)
+
+
 # cluster_correction_test()
 # new_strategy_of_cluster_compare_test()
+
+cluster_test()

@@ -3,7 +3,7 @@ class TreeNodeCluster(object):
     xml树节点聚类
     """
 
-    def __init__(self):
+    def __init__(self, id):
         # 聚类节点
         self.nodes = []
         self.num_of_nodes = 0
@@ -12,7 +12,7 @@ class TreeNodeCluster(object):
         self.has_num_changed = False
 
         # 聚类id
-        self.id = -1
+        self.id = id
 
 
 def get_nodes_similar_score(x_node, y_node):
