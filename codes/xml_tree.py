@@ -875,7 +875,8 @@ def get_nodes_similar_score(x_node, y_node):
 
     # id 不为空
     if len(x_node_id) != 0 or len(y_node_id) != 0:
-        if delete_num_in_str(x_node_id) == delete_num_in_str(y_node_id):
+        #if delete_num_in_str(x_node_id) == delete_num_in_str(y_node_id):
+        if x_node_id == y_node_id:
             return 1
         return 0
     # text 不为空

@@ -315,7 +315,7 @@ class CompareResult(object):
         # self.draw_added_single_nodes()
 
         # self.draw_list_nodes()
-        # self.draw_removed_cluster_nodes()
+        self.draw_removed_cluster_nodes()
         # self.draw_changed_cluster_nodes()
 
         # self.draw_added_cluster_nodes()
