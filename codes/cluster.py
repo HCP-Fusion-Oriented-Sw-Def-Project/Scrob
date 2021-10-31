@@ -14,6 +14,12 @@ class TreeNodeCluster(object):
         # 聚类id
         self.id = id
 
+        # 是否被过滤 目前暂时只过滤layout的节点
+        self.filter = False
+
+        # 是否是叶子节点的聚类
+        self.is_leaf = False
+
 
 def get_nodes_similar_score(x_node, y_node):
     """

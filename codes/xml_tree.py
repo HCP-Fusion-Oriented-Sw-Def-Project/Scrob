@@ -666,6 +666,9 @@ class XmlTree(object):
         self.nodes = self.nodes[1:]  # 第一个根节点无实际含义
 
         self.get_clusters_from_top_down()  # 必须放在 self.nodes = self.nodes[1:] 的后面
+        self.get_remaining_cluster()
+        self.filter_cluster()
+
 
         return self.nodes
 
@@ -741,6 +744,39 @@ class XmlTree(object):
                             y_node.cluster_id = self.cluster_id
                             self.clusters[self.cluster_id] = cluster
                             self.cluster_id += 1
+
+    def get_remaining_cluster(self):
+        """
+        获取剩余的聚类
+        即将自定向下聚类失败的元素进行聚类
+        """
+
+        for node in self.leaf_nodes:
+            if node.cluster_id == -1:
+                cluster = TreeNodeCluster(self.cluster_id)
+                cluster.nodes.append(node)
+                node.cluster_id = self.cluster_id
+                self.clusters[self.cluster_id] = cluster
+                self.cluster_id += 1
+
+    def filter_cluster(self):
+        """
+        过滤聚类
+        去除'layout'节点 暂时保留android.view.View
+        也就是给cluster一个tag
+        """
+
+        for cluster_id in self.clusters:
+            cluster = self.clusters[cluster_id]
+            if 'layout' in cluster.nodes[0].attrib['class']:
+                cluster.filter = True
+
+            # if cluster.nodes[0].attrib['class'] == 'android.view.View':
+            #     cluster.filter = True
+
+            if not cluster.nodes[0].children:
+                cluster.is_leaf = True
+
 
     # def construct_list_cluster(self, node):
     #     """
