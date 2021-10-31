@@ -23,6 +23,9 @@ class TreeNodeCluster(object):
         # 记录聚类的层次
         self.layer = -1
 
+        # 记录该聚类是否在同版本不同的xml文件中共有
+        self.is_common = False
+
 
 def get_nodes_similar_score(x_node, y_node):
     """
@@ -50,22 +53,22 @@ def get_nodes_similar_score(x_node, y_node):
         if x_node_id == y_node_id:
             return 1
         return 0
-    # text 不为空
-    elif len(x_node_text) != 0 or len(y_node_text) != 0:
-        if x_node_text == y_node_text:
-            return 1
-        return 0
-
-    elif len(x_node_content) != 0 or len(y_node_content) != 0:
-        if x_node_content == y_node_content:
-            return 1
-        return 0
+    # # text 不为空
+    # elif len(x_node_text) != 0 or len(y_node_text) != 0:
+    #     if x_node_text == y_node_text:
+    #         return 1
+    #     return 0
+    #
+    # elif len(x_node_content) != 0 or len(y_node_content) != 0:
+    #     if x_node_content == y_node_content:
+    #         return 1
+    #     return 0
     else:
         # 如果 横/纵 坐标  以及 长/宽 有两者占 则表示是同类 即 横坐标和长度 纵坐标和宽度 一共4种组合
         # 这种方法只对一个页面上的没有id的同类元素有效
         score = 0
 
-        if x_node.x_loc == y_node.x_loc or y_node.x_loc == y_node.y_loc:
+        if x_node.x_loc == y_node.x_loc or x_node.y_loc == y_node.y_loc:
             score += 0.4
 
         if x_node.width == y_node.width or x_node.height == y_node.height:

@@ -167,6 +167,30 @@ from cluster import TreeNodeCluster, get_nodes_similar_score, is_similar
 #         self.get_extra_single_nodes()
 
 
+class CompleteTree(object):
+    """
+    版本树 将同版本多个xml的信息进行合并
+    合并 聚类 以及对非列表内部的节点进行补充
+    最终 对比将会使用到这个树
+    """
+
+    def __init__(self, xml_tree_list, main_xml_tree):
+        self.xml_tree_list = xml_tree_list  # 存储各版本的xml_tree
+
+        #  初始化xml_tree_list的树编号
+        for i in range(len(xml_tree_list)):
+            for node in xml_tree_list[i].nodes:
+                node.source_xml_id = i + 1
+
+        self.main_xml_tree = main_xml_tree  # 主要用于对比的xml树
+
+    def merge_cluster(self):
+        """
+        合并节点间的聚类
+        """
+        pass
+
+
 class XmlTree(object):
     """
     xml树 存储结点信息

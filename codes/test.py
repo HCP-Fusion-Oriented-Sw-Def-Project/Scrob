@@ -4,7 +4,8 @@ import cv2
 import xml.etree.ElementTree as ET
 from PIL import Image, ImageDraw
 
-from codes.utility import *
+from cluster import get_nodes_similar_score
+from utility import *
 from result import CompareResult
 from xml_tree import parse_xml
 
@@ -303,18 +304,72 @@ def branch_cluster_test():
                     cv2.imwrite(updated_out_path_4 + '/' + str(cluster_id) + '.png', tmp_img)
 
 
-def test():
-    input_path = '../compare_test_resources/d' + str(1)
-    xml1 = input_path + '/' + '1.xml'
-    png1 = input_path + '/' + '1.png'
-    xml_tree, nodes = parse_xml(xml1, png1)
+def merge_cluster_test():
+    for i in range(1, 17):
 
+        if i == 16:
+
+            input_path = '../compare_test_resources/d' + str(i)
+            output_path = '../merge_cluster_test/d' + str(i)
+
+            xml1 = input_path + '/' + '1.xml'
+            xml2 = input_path + '/' + '2.xml'
+            png1 = input_path + '/' + '1.png'
+            png2 = input_path + '/' + '2.png'
+
+            xml3 = input_path + '/' + '3.xml'
+            xml4 = input_path + '/' + '4.xml'
+            png3 = input_path + '/' + '3.png'
+            png4 = input_path + '/' + '4.png'
+
+            # base_version解析数据
+            xml_tree1, nodes1 = parse_xml(xml1, png1)
+            xml_tree2, nodes2 = parse_xml(xml2, png2)
+
+            for x_cluster_id in xml_tree1.clusters:
+                x_cluster = xml_tree1.clusters[x_cluster_id]
+                for y_cluster_id in xml_tree2.clusters:
+                    y_cluster = xml_tree2.clusters[y_cluster_id]
+
+                    sim = get_nodes_similar_score(x_cluster.nodes[0], y_cluster.nodes[0])
+                    if sim >= 0.8:
+                        x_cluster.is_common = True
+                        y_cluster.is_common = True
+
+            # 画图 xml1 中仅有的聚类节点
+            print('xml1')
+            img = cv2.imread(png1)
+            for cluster_id in xml_tree1.clusters:
+                cluster = xml_tree1.clusters[cluster_id]
+                if not cluster.is_common:
+                    for node in cluster.nodes:
+                        print(node.attrib)
+                        x1, y1, x2, y2 = node.parse_bounds()
+                        img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+
+            cv2.imwrite(output_path + '/' + 'cluster_only_in_xml1.png', img)
+
+            # 画图 xml2 中仅有的聚类节点
+            print('xml2')
+            img = cv2.imread(png2)
+            for cluster_id in xml_tree2.clusters:
+                cluster = xml_tree2.clusters[cluster_id]
+                if not cluster.is_common:
+                    for node in cluster.nodes:
+                        print(node.attrib)
+                        x1, y1, x2, y2 = node.parse_bounds()
+                        img = cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+            cv2.imwrite(output_path + '/' + 'cluster_only_in_xml2.png', img)
 
 
 # cluster_correction_test()
 # new_strategy_of_cluster_compare_test()
 
 # leaf_cluster_test()
-branch_cluster_test()
+# branch_cluster_test()
 
-# test()
+merge_cluster_test()
