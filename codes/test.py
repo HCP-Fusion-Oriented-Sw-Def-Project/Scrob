@@ -98,7 +98,7 @@ from xml_tree import parse_xml
 
 def leaf_cluster_test():
     """
-    测试聚类效果
+    测试叶子节点聚类效果
     """
 
     for i in range(1, 17):
@@ -199,7 +199,122 @@ def leaf_cluster_test():
                 cv2.imwrite(updated_out_path_4 + '/' + str(cluster_id) + '.png', tmp_img)
 
 
+def branch_cluster_test():
+    """
+    测试非叶子节点的聚类效果
+    """
+
+    for i in range(1, 17):
+
+        if i < 20:
+            input_path = '../compare_test_resources/d' + str(i)
+
+            output_path = '../branch_cluster_test/d' + str(i)
+
+            xml1 = input_path + '/' + '1.xml'
+            xml2 = input_path + '/' + '2.xml'
+            png1 = input_path + '/' + '1.png'
+            png2 = input_path + '/' + '2.png'
+
+            xml3 = input_path + '/' + '3.xml'
+            xml4 = input_path + '/' + '4.xml'
+            png3 = input_path + '/' + '3.png'
+            png4 = input_path + '/' + '4.png'
+
+            # base_version解析数据
+            xml_tree1, nodes1 = parse_xml(xml1, png1)
+            xml_tree2, nodes2 = parse_xml(xml2, png2)
+
+            # updated_version解析数据
+            xml_tree3, nodes3 = parse_xml(xml3, png3)
+            xml_tree4, nodes4 = parse_xml(xml4, png4)
+
+            # base_version 画图
+            base_out_path = output_path + '/' + 'base'
+            img = cv2.imread(png1)
+            for cluster_id in xml_tree1.clusters:
+                tmp_img = img.copy()
+                cluster = xml_tree1.clusters[cluster_id]
+                if not cluster.is_leaf:
+                    nodes = cluster.nodes
+                    for node in nodes:
+                        x1, y1, x2, y2 = node.parse_bounds()
+                        tmp_img = cv2.rectangle(tmp_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+                    base_out_path_1 = base_out_path + '/' + '1'
+
+                    if not os.path.exists(base_out_path_1):
+                        os.makedirs(base_out_path_1)
+
+                    cv2.imwrite(base_out_path_1 + '/' + str(cluster_id) + '.png', tmp_img)
+
+            img = cv2.imread(png2)
+            for cluster_id in xml_tree2.clusters:
+                tmp_img = img.copy()
+                cluster = xml_tree2.clusters[cluster_id]
+                if not cluster.is_leaf:
+                    nodes = cluster.nodes
+                    for node in nodes:
+                        x1, y1, x2, y2 = node.parse_bounds()
+                        tmp_img = cv2.rectangle(tmp_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+                    base_out_path_2 = base_out_path + '/' + '2'
+
+                    if not os.path.exists(base_out_path_2):
+                        os.makedirs(base_out_path_2)
+
+                    cv2.imwrite(base_out_path_2 + '/' + str(cluster_id) + '.png', tmp_img)
+
+            # updated_version 画图
+            updated_out_path = output_path + '/' + 'updated'
+            img = cv2.imread(png3)
+            for cluster_id in xml_tree3.clusters:
+                tmp_img = img.copy()
+                cluster = xml_tree3.clusters[cluster_id]
+                if not cluster.is_leaf:
+                    nodes = cluster.nodes
+                    for node in nodes:
+                        x1, y1, x2, y2 = node.parse_bounds()
+                        tmp_img = cv2.rectangle(tmp_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+                    updated_out_path_3 = updated_out_path + '/' + '3'
+
+                    if not os.path.exists(updated_out_path_3):
+                        os.makedirs(updated_out_path_3)
+
+                    cv2.imwrite(updated_out_path_3 + '/' + str(cluster_id) + '.png', tmp_img)
+
+            img = cv2.imread(png4)
+            updated_out_path = output_path + '/' + 'updated'
+            for cluster_id in xml_tree4.clusters:
+                tmp_img = img.copy()
+                cluster = xml_tree4.clusters[cluster_id]
+                if not cluster.is_leaf:
+                    nodes = cluster.nodes
+                    for node in nodes:
+                        x1, y1, x2, y2 = node.parse_bounds()
+                        tmp_img = cv2.rectangle(tmp_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+                    updated_out_path_4 = updated_out_path + '/' + '4'
+
+                    if not os.path.exists(updated_out_path_4):
+                        os.makedirs(updated_out_path_4)
+
+                    cv2.imwrite(updated_out_path_4 + '/' + str(cluster_id) + '.png', tmp_img)
+
+
+def test():
+    input_path = '../compare_test_resources/d' + str(1)
+    xml1 = input_path + '/' + '1.xml'
+    png1 = input_path + '/' + '1.png'
+    xml_tree, nodes = parse_xml(xml1, png1)
+
+
+
 # cluster_correction_test()
 # new_strategy_of_cluster_compare_test()
 
-leaf_cluster_test()
+# leaf_cluster_test()
+branch_cluster_test()
+
+# test()

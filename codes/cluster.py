@@ -20,6 +20,9 @@ class TreeNodeCluster(object):
         # 是否是叶子节点的聚类
         self.is_leaf = False
 
+        # 记录聚类的层次
+        self.layer = -1
+
 
 def get_nodes_similar_score(x_node, y_node):
     """
@@ -69,3 +72,33 @@ def get_nodes_similar_score(x_node, y_node):
             score += 0.4
 
         return score
+
+
+def is_similar(x_node, y_node):
+    """
+    判断两个非叶子节点是否可以聚类一类
+    根据其子孙叶子节点聚类的相似度
+    """
+
+    x_clusters = []
+
+    for desc in x_node.descendants:
+        if desc.cluster_id != -1:
+            x_clusters.append(desc.cluster_id)
+
+    y_clusters = []
+
+    for desc in y_node.descendants:
+        if desc.cluster_id != -1:
+            y_clusters.append(desc.cluster_id)
+
+    counter = 0
+    for x_cluster_id in x_clusters:
+        for y_cluster_id in y_clusters:
+            if x_cluster_id == y_cluster_id:
+                counter += 2
+
+    if counter / (len(x_clusters) + len(y_clusters)) >= 0.8:
+        return True
+    else:
+        return False

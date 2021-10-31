@@ -1,9 +1,10 @@
+import copy
 import xml.etree.ElementTree as ET
 
 from utility import *
 from str_utility import delete_num_in_str
 from tree_node import TreeNode
-from cluster import TreeNodeCluster, get_nodes_similar_score
+from cluster import TreeNodeCluster, get_nodes_similar_score, is_similar
 
 
 # class CompleteTree(object):
@@ -253,7 +254,7 @@ class XmlTree(object):
         self.id += 1
 
         if node.layer not in self.layers:
-            self.layers[node.layer] = [node.idx]
+            self.layers[node.layer] = [node.idx]  # 更新为直接存储节点
         else:
             self.layers[node.layer].append(node.idx)
 
@@ -667,46 +668,11 @@ class XmlTree(object):
 
         self.get_clusters_from_top_down()  # 必须放在 self.nodes = self.nodes[1:] 的后面
         self.get_remaining_cluster()
-        self.filter_cluster()
-
+        self.divide_cluster()
+        self.get_cluster_correction()
+        self.get_rid_of_nested_cluster()
 
         return self.nodes
-
-    # def get_clusters_from_top_down(self):
-    #     """
-    #     自顶向下获取元素聚类
-    #     """
-    #     for level in self.layers:
-    #         nodes_idx = self.layers[level]
-    #
-    #         for i in range(len(nodes_idx)):
-    #             for j in range(i + 1, len(nodes_idx)):
-    #                 x_node_idx = nodes_idx[i]
-    #                 y_node_idx = nodes_idx[j]
-    #
-    #                 x_node = self.nodes[x_node_idx]
-    #                 y_node = self.nodes[y_node_idx]
-    #
-    #                 sim = get_nodes_similar_score(x_node, y_node)
-    #                 if sim >= 0.8:
-    #                     # x_node已经属于某个聚类
-    #                     if x_node.cluster_id != -1 and y_node.cluster_id == -1:
-    #                         if y_node.idx not in self.clusters[x_node.cluster_id]:
-    #                             self.clusters[x_node.cluster_id].append(y_node_idx)
-    #                         y_node.cluster_id = x_node.cluster_id
-    #                     # y_node 已经属于某个聚类
-    #                     elif y_node.cluster_id != -1 and x_node.cluster_id == -1:
-    #                         if x_node.idx not in self.clusters[y_node.cluster_id]:
-    #                             self.clusters[y_node.cluster_id].append(x_node.idx)
-    #                         x_node.cluster_id = y_node.cluster_id
-    #                     # x_node 和 y_node 暂时都不属于任何聚类
-    #                     elif x_node.cluster_id == -1 and y_node.cluster_id == -1:
-    #                         self.clusters[self.clusters_id] = []
-    #                         self.clusters[self.clusters_id].append(x_node.idx)
-    #                         self.clusters[self.clusters_id].append(y_node.idx)
-    #                         x_node.cluster_id = self.clusters_id
-    #                         y_node.cluster_id = self.clusters_id
-    #                         self.clusters_id += 1
 
     def get_clusters_from_top_down(self):
         """
@@ -738,6 +704,7 @@ class XmlTree(object):
                         # x_node 和 y_node 暂时都不属于任何聚类
                         elif x_node.cluster_id == -1 and y_node.cluster_id == -1:
                             cluster = TreeNodeCluster(self.cluster_id)
+                            cluster.layer = x_node.layer
                             cluster.nodes.append(x_node)
                             cluster.nodes.append(y_node)
                             x_node.cluster_id = self.cluster_id
@@ -759,7 +726,108 @@ class XmlTree(object):
                 self.clusters[self.cluster_id] = cluster
                 self.cluster_id += 1
 
-    def filter_cluster(self):
+    def get_cluster_correction(self):
+        """
+        聚类修正
+        自上而下进行聚类会导致某些分支节点聚类错误
+        故可依据其子孙节点的相似性来进行修正
+        """
+
+        # 先深拷贝一份clusters
+        tmp_clusters = copy.deepcopy(self.clusters)
+
+        for cluster_id in tmp_clusters:
+            cluster = tmp_clusters[cluster_id]
+            if not cluster.is_leaf:
+                nodes = cluster.nodes
+                has_id_used = False
+                # 将cluster_id恢复初始化
+                for node in nodes:
+                    node.cluster_id = -1
+
+                # 将原版置空
+                self.clusters[cluster_id].nodes = []
+
+                for i in range(len(nodes)):
+                    for j in range(i + 1, len(nodes)):
+                        x_node = nodes[i]
+                        y_node = nodes[j]
+
+                        if is_similar(x_node, y_node):
+                            # x_node已经属于某个聚类
+                            if x_node.cluster_id != -1 and y_node.cluster_id == -1:
+                                if y_node not in self.clusters[x_node.cluster_id].nodes:
+                                    self.clusters[x_node.cluster_id].nodes.append(y_node)
+                                y_node.cluster_id = x_node.cluster_id
+                            # y_node 已经属于某个聚类
+                            elif y_node.cluster_id != -1 and x_node.cluster_id == -1:
+                                if x_node not in self.clusters[y_node.cluster_id].nodes:
+                                    self.clusters[y_node.cluster_id].nodes.append(x_node)
+                                x_node.cluster_id = y_node.cluster_id
+                            # x_node 和 y_node 暂时都不属于任何聚类
+                            elif x_node.cluster_id == -1 and y_node.cluster_id == -1:
+
+                                if not has_id_used:
+                                    has_id_used = True
+                                    self.clusters[cluster_id].nodes.append(x_node)
+                                    self.clusters[cluster_id].nodes.append(y_node)
+                                    x_node.cluster_id = cluster_id
+                                    y_node.cluster_id = cluster_id
+                                else:
+                                    tmp_cluster = TreeNodeCluster(self.cluster_id)
+                                    tmp_cluster.later = x_node.layer
+                                    tmp_cluster.nodes.append(x_node)
+                                    tmp_cluster.nodes.append(y_node)
+                                    x_node.cluster_id = self.cluster_id
+                                    y_node.cluster_id = self.cluster_id
+                                    self.clusters[self.cluster_id] = tmp_cluster
+                                    self.cluster_id += 1
+
+        # 去除空的聚类
+        tmp_clusters = {}
+        for cluster_id in self.clusters:
+            cluster = self.clusters[cluster_id]
+            nodes = cluster.nodes
+            if len(nodes) != 0:
+                tmp_clusters[cluster_id] = cluster
+
+        self.clusters = tmp_clusters
+
+    def get_rid_of_nested_cluster(self):
+        """
+        去除非叶子节点间聚类的嵌套
+        如不同的聚类间有公共的子孙节点
+        则只保留层次较高的那个聚类
+        """
+
+        tmp_clusters = {}
+        # 首先要对self.clusters 按照层级进行排序
+        result = sorted(self.clusters.items(), key=lambda x: x[1].layer, reverse=True)  # 返回tuple类型的数组
+
+        for tup in result:
+            cluster_id = tup[0]
+            cluster = tup[1]
+            tmp_clusters[cluster_id] = cluster
+
+        self.clusters = tmp_clusters
+
+        tmp_clusters = {}
+        for x_cluster_id in self.clusters:
+            flag = True
+            for y_cluster_id in self.clusters:
+                x_nodes = self.clusters[x_cluster_id].nodes
+                y_nodes = self.clusters[y_cluster_id].nodes
+                for x_node in x_nodes:
+                    for y_node in y_nodes:
+                        if has_common_desc(x_node, y_node) and y_cluster_id < x_cluster_id:
+                            flag = False
+
+            if flag:
+                tmp_clusters[x_cluster_id] = self.clusters[x_cluster_id]
+
+        self.clusters = tmp_clusters
+
+    def divide_cluster(self):
         """
         过滤聚类
         去除'layout'节点 暂时保留android.view.View
@@ -776,7 +844,6 @@ class XmlTree(object):
 
             if not cluster.nodes[0].children:
                 cluster.is_leaf = True
-
 
     # def construct_list_cluster(self, node):
     #     """
