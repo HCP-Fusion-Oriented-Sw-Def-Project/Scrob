@@ -187,6 +187,7 @@ class CompleteTree(object):
     def merge_cluster(self):
         """
         合并节点间的聚类
+        主要是从其它的xml信息中获取新的聚类
         """
         pass
 

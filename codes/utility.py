@@ -72,7 +72,7 @@ def is_rel_bounds_matched(x_node, y_node, x_common_attrs):
         scores = abs(x1 - x3) + abs(y1 - y1) + abs(x_node.width - y_node.width) + abs(x_node.height - y_node.height)
 
     # 大于列表节点宽度的
-    if scores > x_node.list_ans.width / 30: # 540 / 30 = 18
+    if scores > x_node.list_ans.width / 30:  # 540 / 30 = 18
         return False
 
     return True
@@ -312,3 +312,12 @@ def has_common_desc(x_node, y_node):
                 return True
 
     return False
+
+
+def get_clusters_tag(x_cluster, y_cluster):
+    """
+    主要用于同版本间识别cluster在不同xml文件中的特点
+    主要是cluster内部元素数量的变化 以及共性的变化
+    """
+
+    pass
