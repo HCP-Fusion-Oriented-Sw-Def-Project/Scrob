@@ -1,4 +1,4 @@
-from codes.utility import ChangedType
+from utility import ChangedType
 
 
 class TreeNode(object):
@@ -19,12 +19,7 @@ class TreeNode(object):
         self.children = []
         self.descendants = []  # 节点的子孙节点
 
-        # self.list_ans = None  # 倘若节点在列表内部 那么记录其祖先节点 这个祖先节点就是这个列表 (discard)
-
         self.dynamic_changed_type = ChangedType.REMAIN
-
-        # # 判断是否存在于列表中  (discard)
-        # self.is_in_list = False
 
         # 用map来存储属性的变化状态
         self.dynamic_changed_attrs = {
@@ -34,7 +29,8 @@ class TreeNode(object):
             'content-desc': 0,
             'location': 0,
             'size': 0,
-            'color': 0
+            'color': 0,
+            'xpath': 0
         }
 
         # 对比后发生变化的属性
@@ -63,6 +59,9 @@ class TreeNode(object):
         self.y_loc = -1
 
         self.cluster_id = -1  # 所属聚类id
+
+        # 判断其是否在组合中
+        self.is_in_combination = False
 
         # 用于对比时判断该节点是否已有匹配对象
         self.matched_node = None

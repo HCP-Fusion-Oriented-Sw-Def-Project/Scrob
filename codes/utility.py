@@ -240,7 +240,8 @@ def get_nodes_tag(x_tree, y_tree):
         for y_node in y_nodes:
             if is_xpath_matched(x_node, y_node):
                 has_matched = True
-                if x_node.dynamic_changed_type == ChangedType.REMAIN or y_node.dynamic_changed_type == ChangedType.REMAIN:
+                if (x_node.dynamic_changed_type == ChangedType.REMAIN or
+                        y_node.dynamic_changed_type == ChangedType.REMAIN):
                     get_nodes_attr_tag(x_node, y_node, x_tree, y_tree)
 
         if not has_matched:
@@ -290,6 +291,7 @@ def has_desc_in_changed_cls(node, xml_tree):
     """
     判断一个节点是否有子孙节点
     存在于（会变化的聚类：指的是内部含有元素会变化）当中
+    暂时弃用
     """
 
     for desc in node.descendants:
@@ -297,6 +299,20 @@ def has_desc_in_changed_cls(node, xml_tree):
             for cluster_id in xml_tree.attr_changed_clusters:
                 if desc.cluster_id == cluster_id:
                     return True
+
+    return False
+
+
+def has_dynamic_desc(node):
+    """
+    判断一个节点的子孙节点是否是动态的
+    :param node:
+    :return:
+    """
+
+    for desc in node.descendants:
+        if not desc.children and desc.dynamic_changed_type != ChangedType.REMAIN:
+            return True
 
     return False
 
@@ -318,6 +334,52 @@ def get_clusters_tag(x_cluster, y_cluster):
     """
     主要用于同版本间识别cluster在不同xml文件中的特点
     主要是cluster内部元素数量的变化 以及共性的变化
+    暂时弃用
     """
 
     pass
+
+
+def is_filter(node):
+    """
+    用于判断一个叶子节点是否需要被过滤
+    :param node:
+    :return:
+    """
+
+    if 'layout' in node.attrib['class'].lower():
+        return True
+
+    # if node.attrib['class'] == 'android.view.View':
+    #     return True
+
+    return False
+
+
+def is_filter_list_node(node, clusters):
+    """
+    过滤掉那些不太像是组合的含有动态元素的列表
+    :return:
+    """
+
+    count_desc = 0
+
+    for desc in node.descendants:
+        if not desc.children:
+            count_desc += 1
+
+    if count_desc <= 1:
+        return True
+
+    if node.cluster_id != -1 and node.cluster_id in clusters.keys():
+        dynamic_list_nodes_count = 0
+        cluster = clusters[node.cluster_id]
+
+        for tmp_node in cluster.nodes:
+            if has_dynamic_desc(tmp_node):
+                dynamic_list_nodes_count += 1
+
+        if dynamic_list_nodes_count / len(clusters[node.cluster_id].nodes) < 0.5:
+            return True
+
+    return False
