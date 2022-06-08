@@ -19,7 +19,7 @@ class TreeNode(object):
         self.children = []
         self.descendants = []  # 节点的子孙节点
 
-        self.dynamic_changed_type = ChangedType.REMAIN
+        self.dynamic_changed_type = ChangedType.REMAIN.value
 
         # 用map来存储属性的变化状态
         self.dynamic_changed_attrs = {
@@ -40,6 +40,7 @@ class TreeNode(object):
             'text': 0,
             'content-desc': 0,
             'location': 0,
+            'rel_location': 0,
             'size': 0,
             'color': 0
         }
@@ -49,7 +50,10 @@ class TreeNode(object):
         self.class_index = -1
 
         self.full_xpath = ''  # 绝对路径
-        self.xpath = []  # 所有有效的相对路径
+        self.xpath = []  # 所有有效的路径
+
+        # 列表内部节点相对于列表的路径
+        self.rel_xpath = ''
 
         self.width = -1
         self.height = -1
@@ -61,15 +65,18 @@ class TreeNode(object):
         self.cluster_id = -1  # 所属聚类id
 
         # 判断其是否在组合中
-        self.is_in_combination = False
+        self.is_in_list = False
 
         # 用于对比时判断该节点是否已有匹配对象
-        self.matched_node = None
+        self.matched_node_no = -1
         # 判断该节点跨版本对比时是否发生变化
         self.has_changed = False
 
         # 记录节点来源于哪个xml文件 编号从1开始
         self.source_xml_id = -1
+
+        # 记录节点自身的图片路径
+        self.img_path = ''
 
     def parse_bounds(self):
         """
@@ -104,44 +111,62 @@ class TreeNode(object):
             self.width = x2 - x1
             self.height = y2 - y1
 
-    # def construct_rel_bounds(self, list_node):
-    #     """
-    #     构造列表节点中的节点相对于列表的位置 (discard)
-    #     """
-    #
-    #     x1, y1, x2, y2 = self.parse_bounds()
-    #
-    #     rel_x1 = x1 - list_node.x_loc
-    #     rel_y1 = y1 - list_node.y_loc
-    #     rel_x2 = x2 - list_node.x_loc
-    #     rel_y2 = y2 - list_node.y_loc
-    #
-    #     rel_bounds = '[' + str(rel_x1) + ',' + str(rel_y1) + ']' + '[' + str(rel_x2) + ',' + str(rel_y2) + ']'
-    #
-    #     self.attrib['rel_bounds'] = rel_bounds
+    def construct_rel_xpath(self, list_node):
+        """
+        构造列表节点相对于列表的路径
+        :param list_node:
+        :return:
+        """
 
-    # def parse_rel_bounds(self):
-    #     """
-    #     解析rel_bounds (discard)
-    #     """
-    #
-    #     bounds = self.attrib['rel_bounds']
-    #     str_1 = bounds.split(']')[0] + ']'
-    #     x1 = str_1.split(',')[0]
-    #     x1 = int(x1[1:])
-    #
-    #     y1 = str_1.split(',')[1]
-    #     y1 = int(y1[:-1])
-    #
-    #     str_2 = bounds.split(']')[1] + ']'
-    #     x2 = str_2.split(',')[0]
-    #     x2 = int(x2[1:])
-    #
-    #     y2 = str_2.split(',')[1]
-    #     y2 = int(y2[:-1])
-    #
-    #     # 返回元素相对于列表节点左上角和右下角坐标
-    #     return x1, y1, x2, y2
+        list_node_xpath_list = list_node.full_xpath.split('/')
+        full_xpath_list = self.full_xpath.split('/')
+        tmp_list = []
+
+        for i in range(len(list_node_xpath_list), len(full_xpath_list)):
+            tmp_list.append(full_xpath_list[i])
+
+        sp = '/'
+
+        self.rel_xpath = sp.join(tmp_list)
+
+    def construct_rel_bounds(self, list_node):
+        """
+        构造列表节点中的节点相对于列表的位置
+        """
+
+        x1, y1, x2, y2 = self.parse_bounds()
+
+        rel_x1 = x1 - list_node.x_loc
+        rel_y1 = y1 - list_node.y_loc
+        rel_x2 = x2 - list_node.x_loc
+        rel_y2 = y2 - list_node.y_loc
+
+        rel_bounds = '[' + str(rel_x1) + ',' + str(rel_y1) + ']' + '[' + str(rel_x2) + ',' + str(rel_y2) + ']'
+
+        self.attrib['rel_bounds'] = rel_bounds
+
+    def parse_rel_bounds(self):
+        """
+        解析rel_bounds
+        """
+
+        bounds = self.attrib['rel_bounds']
+        str_1 = bounds.split(']')[0] + ']'
+        x1 = str_1.split(',')[0]
+        x1 = int(x1[1:])
+
+        y1 = str_1.split(',')[1]
+        y1 = int(y1[:-1])
+
+        str_2 = bounds.split(']')[1] + ']'
+        x2 = str_2.split(',')[0]
+        x2 = int(x2[1:])
+
+        y2 = str_2.split(',')[1]
+        y2 = int(y2[:-1])
+
+        # 返回元素相对于列表节点左上角和右下角坐标
+        return x1, y1, x2, y2
 
     def get_descendants(self, node):
         """

@@ -1,176 +1,15 @@
-import copy
 import xml.etree.ElementTree as ET
 
-from utility import *
-from str_utility import delete_num_in_str
-from tree_node import TreeNode
 from cluster import TreeNodeCluster, get_nodes_similar_score, is_similar
-
-
-# class CompleteTree(object):
-#     """
-#     版本树 将同版本多个xml的信息进行合并
-#     合并 聚类 以及对非列表内部的节点进行补充
-#     最终 对比将会使用到这个树 (discard)
-#     """
-#
-#     def __init__(self, xml_tree_list, main_xml_tree):
-#         # self.list_cluster_nodes = []  # 同版本多个xml文件节点聚类的集合 并且只存储列表节点下的聚类 每个节点就代表了一个聚类
-#         # self.list_cluster_id = 1  # 重新对这些聚类进行编号
-#         self.extra_single_nodes = []  # 从其它xml文件中获取的single_nodes 使用xpath来进行补充
-#         self.xml_tree_list = xml_tree_list  # 存储各版本的xml_tree
-#
-#         #  初始化xml_tree_list的树编号
-#         for i in range(len(xml_tree_list)):
-#             for node in xml_tree_list[i].nodes:
-#                 node.source_xml_id = i + 1
-#
-#         self.main_xml_tree = main_xml_tree  # 主要用于对比的xml树
-#
-#         # 直接复制 因为copy只能copy第一层 没用
-#         self.list_clusters = self.main_xml_tree.list_clusters
-#
-#         # 沿用了已有id 自创了部分id 100之后的则是补充的
-#         self.clusters_id = 100
-#
-#     def construct_extra_list_cluster(self, nodes, cluster_id):
-#         """
-#         构造列表中的聚类信息
-#         """
-#
-#         self.list_clusters[cluster_id] = {}
-#         self.list_clusters[cluster_id]['nodes'] = nodes
-#         self.list_clusters[cluster_id]['common_attrs'] = {
-#             'class': 1,
-#             'resource-id': 1,
-#             'text': 1,
-#             'content-desc': 1,
-#             'rel_location': 1,  # 相对于列表节点的坐标
-#             'size': 1,
-#             'color': 1
-#         }
-#
-#         self.list_clusters[cluster_id]['changed_attrs'] = {
-#             'class': 0,
-#             'resource-id': 0,
-#             'text': 0,
-#             'content-desc': 0,
-#             'rel_location': 0,  # 相对于列表节点的坐标
-#             'size': 0,
-#             'color': 0
-#         }
-#
-#         # 匹配上的聚类
-#         self.list_clusters[cluster_id]['matched_cluster_id'] = -1
-#
-#     def merge_list_clusters(self):
-#         """
-#         合并列表中的聚类
-#         """
-#
-#         idx = 10000
-#         # 遍历其它树
-#         for xml_tree in self.xml_tree_list:
-#             if xml_tree != self.main_xml_tree:
-#                 for x_key in xml_tree.list_clusters:
-#                     x_nodes = xml_tree.list_clusters[x_key]['nodes']
-#                     central_node = x_nodes[0]
-#                     flag = False
-#                     for y_key in self.main_xml_tree.list_clusters:
-#                         y_nodes = self.main_xml_tree.list_clusters[y_key]['nodes']
-#                         node = y_nodes[0]
-#                         sim = get_nodes_similar_score(central_node, node)
-#                         if sim >= 0.8:
-#                             flag = True
-#                             # # 将其它xml文件内的聚类节点加入
-#                             # for node in x_nodes:
-#                             #     tmp_node = node.copy()
-#                             #     tmp_node.idx = idx
-#                             #     y_nodes.append(node)
-#                             #     idx += 1
-#
-#                     if not flag:
-#                         self.construct_extra_list_cluster(x_nodes, self.clusters_id)
-#                         self.clusters_id += 1
-#
-#     def get_list_clusters_tag(self):
-#         """
-#         对列表内的聚类节点进行标记
-#         找出是共性的属性
-#         """
-#
-#         for key in self.list_clusters:
-#             nodes = self.list_clusters[key]['nodes']
-#
-#             for i in range(len(nodes)):
-#                 for j in range(i + 1, len(nodes)):
-#                     x_node = nodes[i]
-#                     y_node = nodes[j]
-#                     if is_rel_location_changed(x_node, y_node, True):
-#                         if self.list_clusters[key]['common_attrs']['rel_location'] == 1:
-#                             self.list_clusters[key]['common_attrs']['rel_location'] = 0
-#
-#                     if is_size_changed(x_node, y_node, True):
-#                         if self.list_clusters[key]['common_attrs']['size'] == 1:
-#                             self.list_clusters[key]['common_attrs']['size'] = 0
-#
-#                     if x_node.attrib['text'] != y_node.attrib['text']:
-#                         if self.list_clusters[key]['common_attrs']['text'] == 1:
-#                             self.list_clusters[key]['common_attrs']['text'] = 0
-#
-#                     if x_node.attrib['content-desc'] != y_node.attrib['content-desc']:
-#                         if self.list_clusters[key]['common_attrs']['content-desc'] == 1:
-#                             self.list_clusters[key]['common_attrs']['content-desc'] = 0
-#
-#                     if 'image' in x_node.attrib['class'].lower() and \
-#                             is_image_changed(x_node, y_node, self.main_xml_tree.img_path, self.main_xml_tree.img_path):
-#                         if self.list_clusters[key]['common_attrs']['color'] == 1:
-#                             self.list_clusters[key]['common_attrs']['color'] = 0
-#
-#     def get_extra_single_nodes(self):
-#         """
-#         非列表叶子节点合并
-#         """
-#
-#         for xml_tree in self.xml_tree_list:
-#             if xml_tree != self.main_xml_tree:
-#                 single_nodes = xml_tree.single_nodes
-#                 for x_node in single_nodes:
-#                     flag = False
-#                     for y_node in self.main_xml_tree.single_nodes:
-#                         if x_node.full_xpath == y_node.full_xpath:
-#                             flag = True
-#
-#                     if not flag:
-#                         self.extra_single_nodes.append(x_node)
-#
-#     def initialize(self):
-#         """
-#         初始化complete_tree
-#         """
-#
-#         # 首先进行标记
-#         for i in range(len(self.xml_tree_list)):
-#             for j in range(i, len(self.xml_tree_list)):
-#                 get_nodes_tag(self.xml_tree_list[i], self.xml_tree_list[j])
-#
-#         # 进行节点划分
-#         for xml_tree in self.xml_tree_list:
-#             xml_tree.divide_nodes()
-#
-#         # 合并聚类
-#         self.merge_list_clusters()
-#         # 聚类标记
-#         self.get_list_clusters_tag()
-#
-#         # 添加来自其它文件的single_nodes
-#         self.get_extra_single_nodes()
+from glist import GList
+from tree_node import TreeNode
+from utility import *
 
 
 class CompleteTree(object):
     """
     版本树 将同版本多个xml的信息进行合并
-    合并 聚类 以及对非列表内部的节点进行补充
+    合并 聚类 (只对列表内部的元素)
     最终 对比将会使用到这个树
     目前只使用动态节点进行聚类
     """
@@ -178,15 +17,17 @@ class CompleteTree(object):
     def __init__(self, xml_tree_list, main_xml_tree):
         self.xml_tree_list = xml_tree_list  # 存储各版本的xml_tree
 
-        # 静态节点的列表
-        self.static_nodes = []
-
         #  初始化xml_tree_list的树编号
         for i in range(len(xml_tree_list)):
             for node in xml_tree_list[i].nodes:
                 node.source_xml_id = i + 1
 
         self.main_xml_tree = main_xml_tree  # 主要用于对比的xml树
+
+        self.glists = []
+
+        # 不在列表中的节点
+        self.single_nodes = []
 
     def tag_for_nodes(self):
         """
@@ -200,59 +41,95 @@ class CompleteTree(object):
 
     def get_tree_list_nodes(self):
         """
-        获取各个树的list_nodes
+        获取各个树的list_nodes 这个函数要在动态元素标记之后进行
         :return:
         """
 
         for xml_tree in self.xml_tree_list:
             xml_tree.get_list_nodes()
 
-    # def get_static_leaf_nodes(self):
-    #     """
-    #     获取静态叶子节点
-    #     动态节点全部是以聚类的形式
-    #     """
-    #
-    #     for node in self.main_xml_tree.leaf_nodes:
-    #         if node.dynamic_changed_type == ChangedType.REMAIN:
-    #             if not is_filter(node) and not node.is_in_combination:
-    #                 self.static_nodes.append(node)
+    def divide_list_nodes(self):
+        """
+        对list nodes 按照父节点进行划分
+        :return:
+        """
 
-    # def get_static_leaf_nodes_in_combination(self):
-    #     """
-    #     获取元素组合中的静态节点
-    #     :return:
-    #     """
-    #
-    #     clusters_to_be_removed = []
-    #
-    #     for cluster_id in self.main_xml_tree.clusters:
-    #         cluster = self.main_xml_tree.clusters[cluster_id]
-    #         count = 0
-    #         for node in cluster.nodes:
-    #             if has_dynamic_desc(node):
-    #                 count += 1
-    #
-    #         if count / len(cluster.nodes) < 0.5:
-    #             self.extract_static_nodes_from_cluster(cluster_id)
-    #             clusters_to_be_removed.append(cluster_id)
-    #
-    #     # 删除原静态节点的组合聚类
-    #     for cluster_id in clusters_to_be_removed:
-    #         del self.main_xml_tree.clusters[cluster_id]
+        for node in self.main_xml_tree.list_nodes:
+            parent_node = node.parent
+            flag = False
+            for glist in self.glists:
+                if parent_node.xpath[0] == glist.root.xpath[0]:
+                    flag = True
+                    glist.nodes.append(node)
 
-    # def extract_static_nodes_from_cluster(self, cluster_id):
-    #     """
-    #     从组合聚类中提取静态节点
-    #     :return:
-    #     """
-    #
-    #     cluster = self.main_xml_tree.clusters[cluster_id]
-    #
-    #     for node in cluster.nodes:
-    #         for desc in node.descendants:
-    #             if not desc.children:
-    #                 self.static_nodes.append(desc)
+            # 不断地创建列表节点的集合 glists
+            if not flag:
+                glist = GList(parent_node)
+                glist.nodes.append(node)
+                self.glists.append(glist)
+
+        # 然后将同版本其他xml树中的列表节点加入 相当于列表的合并
+        for xml_tree in self.xml_tree_list:
+            if xml_tree != self.main_xml_tree:
+                for node in xml_tree.list_nodes:
+                    parent_node = node.parent
+                    flag = False
+                    for glist in self.glists:
+                        # if parent_node.xpath[0] == glist.root.xpath[0]:
+                        if parent_node.attrib['bounds'] == glist.root.attrib['bounds']:
+                            flag = True
+                            glist.nodes.append(node)
+                    if not flag:
+                        glist = GList(parent_node)
+                        glist.nodes.append(node)
+                        self.glists.append(glist)
+
+    def collect_leaf_nodes_in_list(self):
+        """
+        搜集各个列表中的叶子节点
+        并对它们的特性进行统计分析 如在单版本内的大小 尺寸如何
+        :return:
+        """
+
+        for glist in self.glists:
+            for node in glist.nodes:
+                for desc in node.descendants:
+                    if not desc.children:
+                        desc.is_in_list = True
+                        # 构造节点的相对坐标
+                        desc.construct_rel_bounds(node)
+                        desc.construct_rel_xpath(node)
+                        glist.leaf_desc.append(desc)
+
+    def group_glist_leaf_desc(self):
+        """
+        将glist中的叶子节点进行分组
+        :return:
+        """
+
+        for glist in self.glists:
+            glist.group_leaf_desc()
+
+    def address_list_nodes(self):
+        """
+        对列表节点进行处理
+        :return:
+        """
+
+        self.get_tree_list_nodes()
+        self.divide_list_nodes()
+        self.collect_leaf_nodes_in_list()
+        self.group_glist_leaf_desc()
+
+    def get_single_nodes(self):
+        """
+        获得不在列表中的叶子节点
+        :return:
+        """
+
+        for node in self.main_xml_tree.leaf_nodes:
+            if not node.is_in_list:
+                self.single_nodes.append(node)
 
     def initialize(self):
         """
@@ -261,15 +138,8 @@ class CompleteTree(object):
         """
 
         self.tag_for_nodes()
-        # self.get_static_leaf_nodes()
-        # self.get_static_leaf_nodes_in_combination()
-
-    # def merge_cluster(self):
-    #     """
-    #     合并节点间的聚类
-    #     主要是从其它的xml信息中获取新的聚类
-    #     """
-    #     pass
+        self.address_list_nodes()
+        self.get_single_nodes()
 
 
 class XmlTree(object):
@@ -633,7 +503,6 @@ class XmlTree(object):
         for node in self.leaf_nodes:
 
             # 如果全部不满足 那就等于full_xpath
-            # node.xpath = node.full_xpath
             node.xpath.append(node.full_xpath)
 
             class_name = node.attrib['class']
@@ -721,12 +590,15 @@ class XmlTree(object):
         self.dfs(self.root_node, None)
 
         for node in self.nodes:
+            # 记录节点的图片信息
+            node.img_path = self.img_path
             self.get_nodes_full_xpath(node)
             node.get_descendants(node)
             if not node.children:
                 self.leaf_nodes.append(node)
             else:
-                self.branch_nodes.append(node)
+                if 'roation' not in node.attrib.keys():
+                    self.branch_nodes.append(node)
 
         for node in self.nodes[1:]:
             # 去除字符串的空格
@@ -746,11 +618,6 @@ class XmlTree(object):
 
         self.get_rid_of_nested_cluster()
         self.get_list_root_nodes()
-
-        # 必须要在tag完之后使用
-        # self.get_list_nodes()
-
-        # self.divide_nodes()
 
         return self.nodes
 
@@ -795,7 +662,7 @@ class XmlTree(object):
     def get_remaining_leaf_cluster(self):
         """
         获取剩余的聚类
-        即将自定向下聚类失败的元素进行聚类
+        即将自顶向下聚类失败的元素进行聚类
         这些聚类都是以叶子节点的形式
         """
 
@@ -814,16 +681,13 @@ class XmlTree(object):
         故可依据其子孙节点的相似性来进行修正
         """
 
-        # # 先深拷贝一份clusters
-        # tmp_clusters = copy.deepcopy(self.clusters)
-
         tmp_clusters = self.clusters.copy()
 
         for cluster_id in tmp_clusters:
             cluster = tmp_clusters[cluster_id]
             if not cluster.is_leaf:
                 nodes = cluster.nodes
-                has_id_used = False
+                # has_id_used = False
                 # 将cluster_id恢复初始化
                 for node in nodes:
                     node.cluster_id = -1
@@ -850,21 +714,15 @@ class XmlTree(object):
                             # x_node 和 y_node 暂时都不属于任何聚类
                             elif x_node.cluster_id == -1 and y_node.cluster_id == -1:
 
-                                if not has_id_used:
-                                    has_id_used = True
-                                    self.clusters[cluster_id].nodes.append(x_node)
-                                    self.clusters[cluster_id].nodes.append(y_node)
-                                    x_node.cluster_id = cluster_id
-                                    y_node.cluster_id = cluster_id
-                                else:
-                                    tmp_cluster = TreeNodeCluster(self.cluster_id)
-                                    tmp_cluster.later = x_node.layer
-                                    tmp_cluster.nodes.append(x_node)
-                                    tmp_cluster.nodes.append(y_node)
-                                    x_node.cluster_id = self.cluster_id
-                                    y_node.cluster_id = self.cluster_id
-                                    self.clusters[self.cluster_id] = tmp_cluster
-                                    self.cluster_id += 1
+                                # 修改后不对之前的cluster_id进行重用
+                                tmp_cluster = TreeNodeCluster(self.cluster_id)
+                                tmp_cluster.layer = x_node.layer
+                                tmp_cluster.nodes.append(x_node)
+                                tmp_cluster.nodes.append(y_node)
+                                x_node.cluster_id = self.cluster_id
+                                y_node.cluster_id = self.cluster_id
+                                self.clusters[self.cluster_id] = tmp_cluster
+                                self.cluster_id += 1
 
         # 去除空的聚类
         tmp_clusters = {}
@@ -903,11 +761,15 @@ class XmlTree(object):
                 y_nodes = self.clusters[y_cluster_id].nodes
                 for x_node in x_nodes:
                     for y_node in y_nodes:
-                        if has_common_desc(x_node, y_node) and y_cluster_id < x_cluster_id:
+                        if has_common_desc(x_node, y_node) and y_nodes[0].layer < x_nodes[0].layer:
                             flag = False
 
             if flag:
                 tmp_clusters[x_cluster_id] = self.clusters[x_cluster_id]
+            else:
+                # 將原cluster中的元素cluster_id置為-1
+                for node in self.clusters[x_cluster_id].nodes:
+                    node.cluster_id = -1
 
         self.clusters = tmp_clusters
 
@@ -928,16 +790,9 @@ class XmlTree(object):
                         if common_ans is not None and common_ans not in self.list_root_nodes:
                             self.list_root_nodes.append(common_ans)
 
-        # print(len(self.list_root_nodes))
         # 对list_root_nodes 进行去重处理
         # 首先按照层级排序 从大到小排序
         self.list_root_nodes.sort(key=lambda node: node.layer, reverse=True)
-
-        # for node in self.list_root_nodes:
-        #     print(node.attrib)
-        #     print(node.layer)
-        #
-        # print('---------------')
 
         if len(self.list_root_nodes) > 1:
             tmp_list_root_nodes = []
@@ -959,11 +814,6 @@ class XmlTree(object):
 
             self.list_root_nodes = tmp_list_root_nodes
 
-        # for node in self.list_root_nodes:
-        #     print(node.attrib)
-        #
-        # print('-------------')
-
     def get_list_nodes(self):
         """
         获取动态的列表节点
@@ -980,28 +830,34 @@ class XmlTree(object):
         for node in self.list_root_nodes:
             for k in range(len(node.children)):
                 if node.children[k] not in self.list_nodes and node.children[k].cluster_id != -1:
-                    cluster = self.clusters[node.children[k].cluster_id]
+                    # cluster = self.clusters[node.children[k].cluster_id]
+                    try:
+                        cluster = self.clusters[node.children[k].cluster_id]
+                    except Exception as e:
+                        print(node.children[k - 1].cluster_id)
+                        print(node.children[k].cluster_id)
+                        print(self.clusters)
+                        # print(e)
+                        # print(node.children[k].attrib)
+                        # print(node.attrib)
+
                     count = 0
                     for tmp_node in cluster.nodes:
+                        # 看看该聚类中动态元素列表的数量是否大于0.5
                         if tmp_node in self.list_nodes:
                             count += 1
                     if count / len(cluster.nodes) >= 0.5:
                         self.list_nodes.append(node.children[k])
 
+                # 如果其左边兄弟节点为动态列表节点 那么其自身也该如此
                 if node.children[k] not in self.list_nodes:
                     flag_left = False
-                    # flag_right = False
                     for j in range(0, k):
                         if node.children[j] in self.list_nodes:
                             flag_left = True
                             break
 
-                    # for j in range(k + 1, len(node.children)):
-                    #     if node.children[j] in self.list_nodes:
-                    #         flag_right = True
-                    #         break
-
-                    if flag_left :
+                    if flag_left:
                         self.list_nodes.append(node.children[k])
 
         # 进行一次过滤
@@ -1022,158 +878,9 @@ class XmlTree(object):
 
         for cluster_id in self.clusters:
             cluster = self.clusters[cluster_id]
-            # if 'layout' in cluster.nodes[0].attrib['class']:
-            #     cluster.filter = True
-
-            # if cluster.nodes[0].attrib['class'] == 'android.view.View':
-            #     cluster.filter = True
 
             if not cluster.nodes[0].children:
                 cluster.is_leaf = True
-
-    def divide_nodes(self):
-        """
-        给叶子节点做标记
-        标记它们是否处于某一组合中
-        """
-
-        for cluster_id in self.clusters:
-            cluster = self.clusters[cluster_id]
-            if not cluster.is_leaf:
-                for node in cluster.nodes:
-                    for desc in node.descendants:
-                        desc.is_in_combination = True
-
-    # def construct_list_cluster(self, node):
-    #     """
-    #     构造列表中的聚类信息 (discard)
-    #     """
-    #
-    #     self.list_clusters[node.cluster_id] = {}
-    #     self.list_clusters[node.cluster_id]['nodes'] = [node]
-    #     self.list_clusters[node.cluster_id]['common_attrs'] = {
-    #         'class': 1,
-    #         'resource-id': 1,
-    #         'text': 1,
-    #         'content-desc': 1,
-    #         'rel_location': 1,  # 相对于列表节点的坐标
-    #         'size': 1,
-    #         'color': 1
-    #     }
-    #
-    #     self.list_clusters[node.cluster_id]['changed_attrs'] = {
-    #         'class': 0,
-    #         'resource-id': 0,
-    #         'text': 0,
-    #         'content-desc': 0,
-    #         'rel_location': 0,  # 相对于列表节点的坐标
-    #         'size': 0,
-    #         'color': 0
-    #     }
-    #
-    #     self.list_clusters[node.cluster_id]['matched_cluster_id'] = -1
-
-    # def get_list_clusters(self):
-    #     """
-    #     获取所有列表下的聚类编号 (discard)
-    #     需在tag之后进行调用
-    #     """
-    #
-    #     # 找到属性变化的节点
-    #     changed_nodes = []
-    #
-    #     for node in self.leaf_nodes:
-    #         if node.dynamic_changed_type != ChangedType.REMAIN:
-    #             changed_nodes.append(node)
-    #
-    #     # 用于存储列表节点父节点的列表
-    #     list_parent_nodes = []
-    #
-    #     for node in changed_nodes:
-    #         if node.cluster_id != -1 and node.cluster_id not in self.attr_changed_clusters:
-    #             id_list = self.clusters[node.cluster_id]
-    #             self.attr_changed_clusters.add(node.cluster_id)
-    #             node_i = self.nodes[id_list[0]]
-    #             node_j = self.nodes[id_list[1]]
-    #
-    #             if node_i.parent != node_j.parent:
-    #                 common_ans = get_nodes_common_ans(node_i, node_j)
-    #
-    #                 if common_ans not in list_parent_nodes and common_ans.full_xpath != '//':
-    #                     list_parent_nodes.append(common_ans)
-    #
-    #     # 去重前先按照节点的层次对列表进行排序（与下面的去重算法实现有关)
-    #     list_parent_nodes.sort(key=lambda node: node.layer)
-    #
-    #     # 给list_parent_nodes去重
-    #     if len(list_parent_nodes) > 1:
-    #         tmp_list_parent_nodes = []
-    #         for i in range(len(list_parent_nodes)):
-    #             flag = True
-    #             for j in range(i + 1, len(list_parent_nodes)):
-    #                 x_node = list_parent_nodes[i]
-    #                 y_node = list_parent_nodes[j]
-    #                 # layer数越大 说明在树中的层次越低
-    #                 if has_common_desc(x_node, y_node) and x_node.layer > y_node.layer:
-    #                     flag = False
-    #
-    #             if flag and x_node not in tmp_list_parent_nodes:
-    #                 tmp_list_parent_nodes.append(x_node)
-    #
-    #         list_parent_nodes = tmp_list_parent_nodes
-    #
-    #     self.list_parent_nodes = list_parent_nodes
-    #
-    #     changed_list_nodes = []
-    #
-    #     # 找到列表根节点下的每一个包含变化子孙节点的列表节点 一般情况下 倘若能找到正常的列表节点根节点 则这一步没必要
-    #     # 不行 这样有的没变化的列表就找不出来
-    #     for node in list_parent_nodes:
-    #         for child in node.children:
-    #             if has_desc_in_changed_cls(child, self):
-    #                 changed_list_nodes.append(child)
-    #
-    #     # 在这里含有变化的节点被视为是列表节点
-    #     self.list_nodes = changed_list_nodes
-    #
-    #     # 遍历列表节点 将它们的子孙节点的聚类找出
-    #     for node in changed_list_nodes:
-    #         for descendant in node.descendants:
-    #             if not descendant.children:
-    #                 descendant.is_in_list = True
-    #                 descendant.list_ans = node
-    #                 descendant.construct_rel_bounds(node)
-    #                 if descendant.cluster_id != -1:
-    #                     if descendant.cluster_id not in self.list_clusters.keys():
-    #                         self.construct_list_cluster(descendant)
-    #                     else:
-    #                         self.list_clusters[descendant.cluster_id]['nodes'].append(descendant)
-    #                 else:
-    #                     # 有的列表内部节点无法聚类 那么对它们更新创建聚类 一个节点为一类
-    #                     descendant.cluster_id = self.clusters_id
-    #                     self.clusters[self.clusters_id] = [descendant]
-    #                     self.construct_list_cluster(descendant)
-    #                     self.clusters_id += 1
-
-    # def get_single_nodes(self):
-    #     """
-    #     获取非列表下的叶子节点 (discard)
-    #     """
-    #
-    #     for node in self.leaf_nodes:
-    #         if not node.is_in_list:
-    #             self.single_nodes.append(node)
-    #
-    #     return self.single_nodes
-
-    # def divide_nodes(self):
-    #     """
-    #     节点划分
-    #     将节点划分为cluster_nodes以及single_nodes (discard)
-    #     """
-    #
-    #     self.get_list_clusters()
-    #     self.get_single_nodes()
 
 
 def parse_xml(xml_path, img_path):

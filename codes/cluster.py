@@ -102,7 +102,7 @@ def is_similar(x_node, y_node):
             if x_cluster_id == y_cluster_id:
                 counter += 2
 
-    if counter / (len(x_clusters) + len(y_clusters)) >= 0.5:
+    if len(x_clusters) + len(y_clusters) != 0 and counter / (len(x_clusters) + len(y_clusters)) >= 0.5:
         return True
     else:
         return False
