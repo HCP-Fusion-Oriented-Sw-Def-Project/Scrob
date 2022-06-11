@@ -108,12 +108,12 @@ def get_scrob_result(file_path, is_static):
     # removed_nodes, changed_nodes, added_nodes = re.get_single_nodes_result()
 
     # 保存结果图
-    # re.save_single_result()
+    # re.save_single_results()
 
     # 列表元素对比结果
     removed_nodes, changed_nodes, added_nodes = re.get_list_nodes_result()
 
     # 保存结果图
-    re.save_list_result()
+    re.save_list_results()
 
     return [removed_nodes, changed_nodes, added_nodes]
