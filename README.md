@@ -20,7 +20,7 @@ An automated tool to detect GUI changes for Android apps at the screen level.
      * `re.save_single_results`
    * For list nodes, i.e., the nodes inside the slide list in a screen.
      * `re.get_list_nodes_result`
-     * `re.save_list_result`
+     * `re.save_list_results`
 4. We can get the GUI change information from the node attributes.
         `self.real_changed_attrs = {
             'class': 0,
